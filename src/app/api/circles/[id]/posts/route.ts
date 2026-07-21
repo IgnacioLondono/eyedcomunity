@@ -6,6 +6,7 @@ import {
   listCirclePosts,
   upsertCommunityUser,
 } from "@/lib/circle-store";
+import { MediaConfigError } from "@/lib/media/crypto";
 import {
   createEncryptedMedia,
   deleteOwnedMedia,
@@ -65,6 +66,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     }
     if (error instanceof QuotaExceededError) return Response.json({ error: error.message }, { status: 413 });
     if (error instanceof CirclePermissionError) return Response.json({ error: error.message }, { status: 403 });
+    if (error instanceof MediaConfigError) return Response.json({ error: error.message }, { status: 503 });
     return accessErrorResponse(error);
   }
 }

@@ -3,10 +3,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Clock3, Coins, Crown, MessageCircle, Sparkles, Trophy } from "lucide-react";
 import { auth } from "@/auth";
-import { ProfileMediaEditor } from "@/components/profile-media-editor";
+import { BannerColorEditor } from "@/components/banner-color-editor";
 import { StatCard } from "@/components/stat-card";
 import { EyedBotApiError, getCommunityProfile } from "@/lib/eyedbot-api";
-import { getProfileMedia, getQuota } from "@/lib/media/service";
+import { getBannerColor } from "@/lib/media/service";
 
 const compact = new Intl.NumberFormat("es", { notation: "compact", maximumFractionDigits: 1 });
 
@@ -15,13 +15,11 @@ export default async function Dashboard() {
   if (!session?.user?.id) redirect("/");
   const userId = session.user.id;
 
-  const mediaPromise = Promise.all([getProfileMedia(userId), getQuota(userId)]).catch((error) => {
-    console.error("No se pudo cargar el perfil personalizado", error);
-    return [
-      { avatarUrl: null as string | null, bannerUrl: null as string | null },
-      { usedBytes: 0, quotaBytes: 104_857_600 },
-    ] as const;
+  const bannerColorPromise = getBannerColor(userId).catch((error) => {
+    console.error("No se pudo cargar el color de banner", error);
+    return null as string | null;
   });
+
   let profile;
   try {
     profile = await getCommunityProfile(userId);
@@ -30,25 +28,21 @@ export default async function Dashboard() {
     return <Unavailable />;
   }
 
-  const [customMedia, quota] = await mediaPromise;
-
+  const bannerColor = await bannerColorPromise;
   const voiceHours = Math.round((profile.stats.voiceMinutes / 60) * 10) / 10;
-  const avatarUrl = customMedia.avatarUrl || profile.user.avatarUrl;
+  const cover = coverStyle(profile.user.bannerUrl, bannerColor || profile.user.accentColor);
 
   return (
     <>
-      <section
-        className="profile-hero"
-        style={customMedia.bannerUrl ? { backgroundImage: `linear-gradient(110deg, rgba(14,12,22,.92), rgba(14,12,22,.45)), url("${customMedia.bannerUrl}")` } : undefined}
-      >
+      <section className="profile-hero" style={cover}>
         <div className="profile-copy">
           <span className="eyebrow">Tu espacio personal</span>
           <h1>Hola, {profile.user.displayName}.</h1>
           <p>Este es el impacto que has dejado en EyedComun.</p>
         </div>
         <div className="profile-identity">
-          {avatarUrl ? (
-            <Image unoptimized={Boolean(customMedia.avatarUrl)} src={avatarUrl} alt="" width={76} height={76} className="avatar avatar-large" />
+          {profile.user.avatarUrl ? (
+            <Image src={profile.user.avatarUrl} alt="" width={76} height={76} className="avatar avatar-large" />
           ) : <span className="avatar avatar-large avatar-fallback" />}
           <div><strong>Nivel {profile.stats.level}</strong><span>#{profile.stats.rank || "—"} del servidor</span></div>
         </div>
@@ -61,10 +55,10 @@ export default async function Dashboard() {
         <StatCard icon={Coins} label="EyedCoins" value={compact.format(profile.gacha.coins)} detail={`${profile.gacha.collectionSize} objetos`} accent="rose" />
       </section>
 
-      <ProfileMediaEditor
-        initialAvatarUrl={customMedia.avatarUrl}
-        initialBannerUrl={customMedia.bannerUrl}
-        initialQuota={quota}
+      <BannerColorEditor
+        initialColor={bannerColor}
+        hasNitroBanner={Boolean(profile.user.bannerUrl)}
+        accentColor={profile.user.accentColor}
       />
 
       <section className="split-grid">
@@ -90,6 +84,20 @@ export default async function Dashboard() {
       </section>
     </>
   );
+}
+
+function coverStyle(bannerUrl: string | null, accentColor: string | null) {
+  if (bannerUrl) {
+    return {
+      backgroundImage: `linear-gradient(110deg, rgba(14,12,22,.92), rgba(14,12,22,.45)), url("${bannerUrl}")`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+    };
+  }
+  if (accentColor) {
+    return { background: `linear-gradient(135deg, ${accentColor}, #111018)` };
+  }
+  return undefined;
 }
 
 function Unavailable() {

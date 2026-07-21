@@ -11,6 +11,7 @@ import {
   Medal,
   Orbit,
   Settings,
+  ShoppingBag,
   Sparkles,
   Target,
   Trophy,
@@ -52,6 +53,7 @@ const groups: Array<{
     links: [
       { href: "/party", label: "EyedParty", icon: Gamepad2, feature: "party" as CommunityFeatureKey },
       { href: "/challenges", label: "Retos", icon: Target, feature: "challenges" as CommunityFeatureKey },
+      { href: "/shop", label: "Tienda", icon: ShoppingBag, feature: "shop" as CommunityFeatureKey },
     ],
   },
 ];

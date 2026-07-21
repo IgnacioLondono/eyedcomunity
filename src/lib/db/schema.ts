@@ -45,6 +45,7 @@ export const customProfiles = mysqlTable("custom_profiles", {
   discordId: varchar("discord_id", { length: 25 }).primaryKey().references(() => communityUsers.discordId, { onDelete: "cascade" }),
   avatarMediaId: char("avatar_media_id", { length: 36 }).references(() => mediaAssets.id, { onDelete: "set null" }),
   bannerMediaId: char("banner_media_id", { length: 36 }).references(() => mediaAssets.id, { onDelete: "set null" }),
+  bannerColor: varchar("banner_color", { length: 7 }),
   updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
 });
 

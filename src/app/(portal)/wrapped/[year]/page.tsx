@@ -49,7 +49,16 @@ export default async function WrappedPage({ params }: { params: Promise<{ year: 
         </div>
         <h1>Este fue el año de<br /><em>{wrapped.user.displayName}</em></h1>
         <p>Una historia escrita entre mensajes, llamadas y momentos dentro de EyedComun.</p>
-        <WrappedActions year={wrapped.year} />
+        <WrappedActions
+          year={wrapped.year}
+          displayName={wrapped.user.displayName}
+          messages={wrapped.stats.messages}
+          voiceHours={voiceHours}
+          activeDays={wrapped.stats.activeDays}
+          rank={wrapped.stats.rank}
+          xpEarned={wrapped.stats.xpEarned}
+          personaName={persona.name}
+        />
         {!wrapped.finalized && (
           <div className="history-notice">
             <CalendarDays size={17} />
@@ -142,7 +151,16 @@ export default async function WrappedPage({ params }: { params: Promise<{ year: 
         <span className="eyebrow">Eso fue todo por ahora</span>
         <h2>Gracias por ser parte<br />de EyedComun.</h2>
         <p>El próximo capítulo ya se está escribiendo.</p>
-        <WrappedActions year={wrapped.year} />
+        <WrappedActions
+          year={wrapped.year}
+          displayName={wrapped.user.displayName}
+          messages={wrapped.stats.messages}
+          voiceHours={voiceHours}
+          activeDays={wrapped.stats.activeDays}
+          rank={wrapped.stats.rank}
+          xpEarned={wrapped.stats.xpEarned}
+          personaName={persona.name}
+        />
         {year > 2020 && <Link href={`/wrapped/${year - 1}`}>Ver Wrapped {year - 1} <ArrowRight size={16} /></Link>}
       </section>
     </div>

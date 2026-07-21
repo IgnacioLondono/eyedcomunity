@@ -5,7 +5,7 @@ import { ArrowLeft, Clock3, MessageCircle, Sparkles, Trophy } from "lucide-react
 import { auth } from "@/auth";
 import { StatCard } from "@/components/stat-card";
 import { EyedBotApiError, getCommunityMember } from "@/lib/eyedbot-api";
-import { getProfileMedia } from "@/lib/media/service";
+import { getBannerColor } from "@/lib/media/service";
 
 export default async function MemberProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -14,10 +14,11 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
   const { id } = await params;
   if (!/^\d{10,25}$/.test(id)) notFound();
 
-  const mediaPromise = getProfileMedia(id).catch((error) => {
-    console.error("No se pudo cargar el perfil personalizado", error);
-    return { avatarUrl: null as string | null, bannerUrl: null as string | null };
+  const bannerColorPromise = getBannerColor(id).catch((error) => {
+    console.error("No se pudo cargar el color de banner", error);
+    return null as string | null;
   });
+
   let profile: Awaited<ReturnType<typeof getCommunityMember>> | null = null;
   try {
     profile = await getCommunityMember(viewerId, id);
@@ -28,17 +29,17 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
 
   if (!profile) return <div className="empty-card"><h1>No pudimos abrir este perfil</h1><p>Puede que el miembro ya no pertenezca al servidor.</p></div>;
   const { user } = profile;
-  const customMedia = await mediaPromise;
-  const avatarUrl = customMedia.avatarUrl || user.avatarUrl;
-  const bannerUrl = customMedia.bannerUrl || user.bannerUrl;
+  const bannerColor = await bannerColorPromise;
+  const coverColor = user.bannerUrl ? user.accentColor : (bannerColor || user.accentColor);
+
   return (
     <>
         <Link href="/lobby" className="back-link"><ArrowLeft size={16} /> Volver al lobby</Link>
         <section className="public-profile-hero">
-          <div className="public-cover" style={coverStyle(bannerUrl, user.accentColor)} />
+          <div className="public-cover" style={coverStyle(user.bannerUrl, coverColor)} />
           <div className="public-profile-main">
-            <div className={`public-avatar avatar ${avatarUrl ? "" : "avatar-fallback"}`}>
-              {avatarUrl && <Image unoptimized={Boolean(customMedia.avatarUrl)} src={avatarUrl} alt="" width={112} height={112} priority />}
+            <div className={`public-avatar avatar ${user.avatarUrl ? "" : "avatar-fallback"}`}>
+              {user.avatarUrl && <Image src={user.avatarUrl} alt="" width={112} height={112} priority />}
               <i className={`status-dot status-${user.status}`} />
             </div>
             <div><span className="eyebrow">Perfil de la comunidad</span><h1>{user.displayName}</h1><p>@{user.username}</p></div>
@@ -57,12 +58,19 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
             <div className="panel-heading"><div><span className="eyebrow">Acerca de</span><h2>Su paso por EyedComun</h2></div></div>
             <div className="profile-facts">
               <p><span>Miembro desde</span><strong>{user.joinedAt ? new Date(user.joinedAt).toLocaleDateString("es", { year: "numeric", month: "long" }) : "Sin datos"}</strong></p>
-              <p><span>Estado actual</span><strong className="presence-label"><i className={`status-dot status-${user.status}`} /> {user.status === "offline" ? "Desconectado" : "En línea"}</strong></p>
+              <p><span>Estado actual</span><strong className="presence-label"><i className={`status-dot status-${user.status}`} /> {statusLabel(user.status)}</strong></p>
             </div>
           </article>
         </section>
     </>
   );
+}
+
+function statusLabel(status: "online" | "idle" | "dnd" | "offline") {
+  if (status === "online") return "En línea";
+  if (status === "idle") return "Ausente";
+  if (status === "dnd") return "No molestar";
+  return "Desconectado";
 }
 
 function coverStyle(bannerUrl: string | null, accentColor: string | null) {

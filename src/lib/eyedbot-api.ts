@@ -12,6 +12,8 @@ import type {
   CommunityProfile,
   CommunityRanking,
   CommunityServer,
+  CommunityShopCatalog,
+  CommunityShopPurchase,
   CommunityWrapped,
   PartyAction,
   PartyStatus,
@@ -46,7 +48,10 @@ const activityDaySchema = z.object({
   xpEarned: nonNegative,
 });
 const profileSchema = z.object({
-  user: userSchema,
+  user: userSchema.extend({
+    bannerUrl: z.string().url().nullable(),
+    accentColor: z.string().nullable(),
+  }),
   stats: z.object({
     xp: nonNegative, level: nonNegative, messages: nonNegative, voiceMinutes: nonNegative,
     rank: z.number().int().positive().nullable(), memberCount: nonNegative,
@@ -174,7 +179,7 @@ const wrappedSchema = z.object({
 });
 const featureKeySchema = z.enum([
   "activity", "achievements", "wrapped", "server", "lobby",
-  "ranking", "circle", "plans", "party", "challenges",
+  "ranking", "circle", "plans", "party", "challenges", "shop",
 ]);
 const communitySettingsSchema = z.object({
   maintenance: z.boolean(),
@@ -189,6 +194,39 @@ const settingsResponseSchema = z.object({
   ...requestMetadata,
 });
 const settingsCache = new Map<string, { value: z.infer<typeof settingsResponseSchema>; expiresAt: number }>();
+const shopProductSchema = z.object({
+  id: z.string().uuid(),
+  type: z.enum(["character", "role", "item"]),
+  name: z.string().min(1),
+  description: z.string(),
+  imageUrl: z.string().url().nullable(),
+  category: z.string().min(1).max(64),
+  priceCoins: nonNegative,
+  stock: nonNegative.nullable(),
+  remainingStock: nonNegative.nullable(),
+  soldCount: nonNegative,
+  perUserLimit: nonNegative.nullable(),
+  purchasedQuantity: nonNegative,
+  ownedQuantity: nonNegative,
+  active: z.boolean(),
+  sortOrder: nonNegative,
+});
+const shopCatalogSchema = z.object({
+  products: z.array(shopProductSchema),
+  categories: z.array(z.string().min(1)).default([]),
+  balance: nonNegative,
+  ...requestMetadata,
+});
+const shopPurchaseSchema = z.object({
+  purchaseId: z.string().uuid(),
+  productId: z.string().uuid(),
+  quantity: z.number().int().positive(),
+  spentCoins: nonNegative,
+  balance: nonNegative,
+  status: z.literal("completed"),
+  idempotent: z.boolean(),
+  ...requestMetadata,
+});
 
 export class EyedBotApiError extends Error {
   constructor(
@@ -299,6 +337,25 @@ function userPath(userId: string) {
 
 export function getCommunityProfile(userId: string) {
   return eyedBotRequest<CommunityProfile>(`/api/community/profile/${userPath(userId)}`, { userId, schema: profileSchema });
+}
+
+export function getCommunityShop(userId: string) {
+  return eyedBotRequest<CommunityShopCatalog>("/api/community/shop", {
+    userId,
+    schema: shopCatalogSchema,
+  });
+}
+
+export function purchaseCommunityShopProduct(
+  userId: string,
+  input: { productId: string; quantity: number; idempotencyKey: string },
+) {
+  return eyedBotRequest<CommunityShopPurchase>("/api/community/shop/purchases", {
+    userId,
+    method: "POST",
+    body: input,
+    schema: shopPurchaseSchema,
+  });
 }
 
 export async function getCommunitySettings(userId: string) {

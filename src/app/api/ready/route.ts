@@ -16,6 +16,9 @@ export async function GET() {
     if (!["ws:", "wss:"].includes(wsUrl.protocol)) {
       throw new Error("EYEDBOT_WS_URL debe usar WS o WSS");
     }
+    if (!process.env.MEDIA_ENCRYPTION_KEY?.trim()) {
+      throw new Error("Falta MEDIA_ENCRYPTION_KEY");
+    }
     const upstreamHealth = new URL("/health", apiUrl);
     const upstreamResponse = await fetch(upstreamHealth, {
       cache: "no-store",

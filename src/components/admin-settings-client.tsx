@@ -15,6 +15,7 @@ const featureLabels: Record<CommunityFeatureKey, string> = {
   plans: "Quedadas",
   party: "EyedParty",
   challenges: "Retos",
+  shop: "Tienda",
 };
 
 export function AdminSettingsClient({ initialSettings }: { initialSettings: CommunitySettings }) {

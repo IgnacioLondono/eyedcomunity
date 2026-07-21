@@ -206,6 +206,105 @@ export async function deleteCirclePost(authorId: string, postId: string) {
   return true;
 }
 
+export async function deleteCircle(ownerId: string, circleId: string) {
+  const pool = getPool();
+  const connection = await pool.getConnection();
+  let mediaRows: Array<{ id: string; ownerId: string }> = [];
+  try {
+    await connection.beginTransaction();
+    const [circles] = await connection.query<Array<RowDataPacket & { owner_id: string }>>(
+      "SELECT owner_id FROM circles WHERE id = ? FOR UPDATE",
+      [circleId],
+    );
+    if (!circles[0]) {
+      await connection.rollback();
+      return false;
+    }
+    if (circles[0].owner_id !== ownerId) throw new CirclePermissionError();
+    const [media] = await connection.query<Array<RowDataPacket & { media_id: string; owner_id: string }>>(
+      `SELECT pm.media_id, m.owner_id
+       FROM circle_posts p
+       INNER JOIN circle_post_media pm ON pm.post_id = p.id
+       INNER JOIN media_assets m ON m.id = pm.media_id
+       WHERE p.circle_id = ?`,
+      [circleId],
+    );
+    mediaRows = media.map((row) => ({ id: row.media_id, ownerId: row.owner_id }));
+    const [result] = await connection.query<ResultSetHeader>(
+      "DELETE FROM circles WHERE id = ? AND owner_id = ?",
+      [circleId, ownerId],
+    );
+    await connection.commit();
+    if (!result.affectedRows) return false;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+  await Promise.all(mediaRows.map((row) => deleteOwnedMedia(row.ownerId, row.id).catch(() => undefined)));
+  return true;
+}
+
+export async function leaveCircle(userId: string, circleId: string) {
+  const pool = getPool();
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [circles] = await connection.query<Array<RowDataPacket & { owner_id: string }>>(
+      "SELECT owner_id FROM circles WHERE id = ? FOR UPDATE",
+      [circleId],
+    );
+    if (!circles[0]) {
+      await connection.rollback();
+      return false;
+    }
+    if (circles[0].owner_id === userId) {
+      throw new CirclePermissionError("El dueño debe eliminar el círculo");
+    }
+    const [result] = await connection.query<ResultSetHeader>(
+      "DELETE FROM circle_members WHERE circle_id = ? AND user_id = ?",
+      [circleId, userId],
+    );
+    await connection.commit();
+    return result.affectedRows > 0;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function removeCircleMember(ownerId: string, circleId: string, memberId: string) {
+  if (ownerId === memberId) throw new CirclePermissionError("No puedes eliminarte a ti mismo como dueño");
+  const pool = getPool();
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [circles] = await connection.query<Array<RowDataPacket & { owner_id: string }>>(
+      "SELECT owner_id FROM circles WHERE id = ? FOR UPDATE",
+      [circleId],
+    );
+    if (!circles[0]) {
+      await connection.rollback();
+      return false;
+    }
+    if (circles[0].owner_id !== ownerId) throw new CirclePermissionError();
+    const [result] = await connection.query<ResultSetHeader>(
+      "DELETE FROM circle_members WHERE circle_id = ? AND user_id = ? AND role <> 'owner'",
+      [circleId, memberId],
+    );
+    await connection.commit();
+    return result.affectedRows > 0;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
 export class CirclePermissionError extends Error {
   constructor(message = "No tienes permiso para esta acción") {
     super(message);

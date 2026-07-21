@@ -229,43 +229,49 @@ async function releaseReservedAsset(id: string, ownerId: string, bytes: number, 
   }
 }
 
-export async function getProfileMedia(userId: string) {
+export async function getBannerColor(userId: string) {
   await ensureMigrations();
-  const [rows] = await getPool().query<Array<RowDataPacket & {
-    avatar_media_id: string | null;
-    banner_media_id: string | null;
-  }>>(
-    "SELECT avatar_media_id, banner_media_id FROM custom_profiles WHERE discord_id = ?",
+  const [rows] = await getPool().query<Array<RowDataPacket & { banner_color: string | null }>>(
+    "SELECT banner_color FROM custom_profiles WHERE discord_id = ?",
     [userId],
   );
-  const profile = rows[0];
-  return {
-    avatarUrl: profile?.avatar_media_id ? `/api/media/${profile.avatar_media_id}` : null,
-    bannerUrl: profile?.banner_media_id ? `/api/media/${profile.banner_media_id}` : null,
-  };
+  return normalizeBannerColor(rows[0]?.banner_color);
 }
 
-export async function getProfileMediaBatch(userIds: string[]) {
-  if (!userIds.length) return new Map<string, { avatarUrl: string | null; bannerUrl: string | null }>();
+export async function getBannerColorsBatch(userIds: string[]) {
+  if (!userIds.length) return new Map<string, string | null>();
   await ensureMigrations();
   const uniqueIds = [...new Set(userIds)];
   const placeholders = uniqueIds.map(() => "?").join(",");
   const [rows] = await getPool().query<Array<RowDataPacket & {
     discord_id: string;
-    avatar_media_id: string | null;
-    banner_media_id: string | null;
+    banner_color: string | null;
   }>>(
-    `SELECT discord_id, avatar_media_id, banner_media_id
+    `SELECT discord_id, banner_color
      FROM custom_profiles WHERE discord_id IN (${placeholders})`,
     uniqueIds,
   );
-  return new Map(rows.map((row) => [
-    row.discord_id,
-    {
-      avatarUrl: row.avatar_media_id ? `/api/media/${row.avatar_media_id}` : null,
-      bannerUrl: row.banner_media_id ? `/api/media/${row.banner_media_id}` : null,
-    },
-  ]));
+  return new Map(rows.map((row) => [row.discord_id, normalizeBannerColor(row.banner_color)]));
+}
+
+export async function setBannerColor(userId: string, color: string | null) {
+  const bannerColor = normalizeBannerColor(color);
+  await ensureMigrations();
+  const pool = getPool();
+  await pool.query("INSERT IGNORE INTO community_users (discord_id) VALUES (?)", [userId]);
+  await pool.query(
+    `INSERT INTO custom_profiles (discord_id, banner_color)
+     VALUES (?, ?)
+     ON DUPLICATE KEY UPDATE banner_color = VALUES(banner_color)`,
+    [userId, bannerColor],
+  );
+  return bannerColor;
+}
+
+function normalizeBannerColor(value: string | null | undefined) {
+  if (!value) return null;
+  const match = String(value).trim().match(/^#([0-9A-Fa-f]{6})$/);
+  return match ? `#${match[1].toUpperCase()}` : null;
 }
 
 export async function getQuota(userId: string) {

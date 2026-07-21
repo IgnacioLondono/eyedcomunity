@@ -23,6 +23,8 @@ const EVENT_TYPES = [
   "party.status",
   "party.action",
   "community.settings_changed",
+  "shop.purchase_completed",
+  "shop.products_changed",
 ];
 
 export function CommunityLiveEvents() {
@@ -42,6 +44,7 @@ export function CommunityLiveEvents() {
       if (type === "activity.invalidated") return ["/activity", "/dashboard", "/wrapped"].some((path) => pathname.startsWith(path));
       if (type === "ranking.invalidated") return ["/ranking", "/dashboard", "/lobby", "/members", "/wrapped"].some((path) => pathname.startsWith(path));
       if (type === "presence.changed") return ["/lobby", "/server", "/members"].some((path) => pathname.startsWith(path));
+      if (type.startsWith("shop.")) return pathname.startsWith("/shop") || pathname === "/dashboard";
       return false;
     };
     const refresh = (type: string) => {

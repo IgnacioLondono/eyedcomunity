@@ -15,6 +15,7 @@ const featurePaths: Array<[string, CommunityFeatureKey]> = [
   ["/plans", "plans"],
   ["/party", "party"],
   ["/challenges", "challenges"],
+  ["/shop", "shop"],
 ];
 
 export const proxy = auth(async (request) => {
@@ -51,6 +52,7 @@ export const config = {
     "/plans/:path*",
     "/party/:path*",
     "/challenges/:path*",
+    "/shop/:path*",
     "/roadmap/:path*",
     "/wrapped/:path*",
     "/admin/:path*",

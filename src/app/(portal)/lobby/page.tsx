@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { MemberLobby } from "@/components/member-lobby";
 import { PageHeader } from "@/components/page-header";
 import { EyedBotApiError, getCommunityMembers } from "@/lib/eyedbot-api";
-import { getProfileMediaBatch } from "@/lib/media/service";
+import { getBannerColorsBatch } from "@/lib/media/service";
 
 export default async function LobbyPage() {
   const session = await auth();
@@ -19,19 +19,19 @@ export default async function LobbyPage() {
   }
 
   if (!members) return <div className="empty-card"><h1>El lobby no está disponible</h1><p>Inténtalo nuevamente en unos minutos.</p></div>;
+
   try {
-    const customMedia = await getProfileMediaBatch(members.map((member) => member.id));
-    members = members.map((member) => {
-      const custom = customMedia.get(member.id);
-      return {
-        ...member,
-        avatarUrl: custom?.avatarUrl || member.avatarUrl,
-        bannerUrl: custom?.bannerUrl || member.bannerUrl,
-      };
-    });
+    const bannerColors = await getBannerColorsBatch(members.map((member) => member.id));
+    members = members.map((member) => ({
+      ...member,
+      accentColor: member.bannerUrl
+        ? member.accentColor
+        : bannerColors.get(member.id) || member.accentColor,
+    }));
   } catch (error) {
-    console.error("No se pudieron cargar los perfiles personalizados", error);
+    console.error("No se pudieron cargar los colores de banner", error);
   }
+
   const online = members.filter((member) => member.status !== "offline").length;
   return (
     <>

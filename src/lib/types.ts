@@ -18,7 +18,8 @@ export type CommunityFeatureKey =
   | "circle"
   | "plans"
   | "party"
-  | "challenges";
+  | "challenges"
+  | "shop";
 
 export type CommunitySettings = {
   maintenance: boolean;
@@ -26,6 +27,40 @@ export type CommunitySettings = {
   features: Record<CommunityFeatureKey, boolean>;
   updatedAt: string | null;
   updatedBy: string | null;
+};
+
+export type CommunityShopProduct = {
+  id: string;
+  type: "character" | "role" | "item";
+  name: string;
+  description: string;
+  imageUrl: string | null;
+  category: string;
+  priceCoins: number;
+  stock: number | null;
+  remainingStock: number | null;
+  soldCount: number;
+  perUserLimit: number | null;
+  purchasedQuantity: number;
+  ownedQuantity: number;
+  active: boolean;
+  sortOrder: number;
+};
+
+export type CommunityShopCatalog = RequestMetadata & {
+  products: CommunityShopProduct[];
+  categories: string[];
+  balance: number;
+};
+
+export type CommunityShopPurchase = RequestMetadata & {
+  purchaseId: string;
+  productId: string;
+  quantity: number;
+  spentCoins: number;
+  balance: number;
+  status: "completed";
+  idempotent: boolean;
 };
 
 export type TrackingMetadata = {
@@ -177,6 +212,8 @@ export type CommunityProfile = {
     username: string;
     displayName: string;
     avatarUrl: string | null;
+    bannerUrl: string | null;
+    accentColor: string | null;
     joinedAt: string | null;
   };
   stats: {
@@ -244,7 +281,7 @@ export type CommunityWrapped = {
   finalized: boolean;
   schemaVersion: number;
   requestId: string;
-  user: CommunityProfile["user"];
+  user: CommunityUser;
   stats: {
     messages: number;
     voiceSeconds: number;

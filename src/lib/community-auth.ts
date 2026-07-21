@@ -80,6 +80,12 @@ export function accessErrorResponse(error: unknown) {
   if (error instanceof ApiAccessError) {
     return Response.json({ error: error.message }, { status: error.status });
   }
+  if (
+    error instanceof Error
+    && (error.name === "MediaConfigError" || /MEDIA_ENCRYPTION_KEY/.test(error.message))
+  ) {
+    return Response.json({ error: error.message }, { status: 503 });
+  }
   console.error(error);
   return Response.json({ error: "Error interno" }, { status: 500 });
 }

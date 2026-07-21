@@ -2,6 +2,13 @@ import "server-only";
 
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 
+export class MediaConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "MediaConfigError";
+  }
+}
+
 export type EncryptionContext = {
   id: string;
   ownerId: string;
@@ -11,18 +18,26 @@ export type EncryptionContext = {
 };
 
 function getMasterKey() {
-  const encoded = process.env.MEDIA_ENCRYPTION_KEY;
-  if (!encoded) throw new Error("Falta MEDIA_ENCRYPTION_KEY");
+  const encoded = process.env.MEDIA_ENCRYPTION_KEY?.trim();
+  if (!encoded) {
+    throw new MediaConfigError(
+      "Falta MEDIA_ENCRYPTION_KEY. Genera una con: openssl rand -base64 32",
+    );
+  }
   const key = /^[a-f0-9]{64}$/i.test(encoded)
     ? Buffer.from(encoded, "hex")
     : Buffer.from(encoded, "base64");
-  if (key.length !== 32) throw new Error("MEDIA_ENCRYPTION_KEY debe contener exactamente 32 bytes");
+  if (key.length !== 32) {
+    throw new MediaConfigError("MEDIA_ENCRYPTION_KEY debe contener exactamente 32 bytes");
+  }
   return key;
 }
 
 export function currentKeyVersion() {
   const version = Number(process.env.MEDIA_ENCRYPTION_KEY_VERSION || 1);
-  if (!Number.isSafeInteger(version) || version < 1) throw new Error("Versión de cifrado inválida");
+  if (!Number.isSafeInteger(version) || version < 1) {
+    throw new MediaConfigError("Versión de cifrado inválida");
+  }
   return version;
 }
 

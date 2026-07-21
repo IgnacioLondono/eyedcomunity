@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { FormEvent, useMemo, useState } from "react";
-import { Camera, Image as ImageIcon, Plus, Send, Trash2, UserPlus, Users } from "lucide-react";
+import { Camera, Image as ImageIcon, LogOut, Plus, Send, Trash2, UserPlus, Users } from "lucide-react";
 
 type Circle = {
   id: string;
@@ -54,7 +54,11 @@ export function CircleClient({
     if (!response.ok) throw new Error(body.error || "No se pudo actualizar");
     setCircles(body.circles);
     setPosts(body.posts);
-    if (!selectedCircle && body.circles[0]) setSelectedCircle(body.circles[0].id);
+    if (selectedCircle && !body.circles.some((circle: Circle) => circle.id === selectedCircle)) {
+      setSelectedCircle(body.circles[0]?.id || "");
+    } else if (!selectedCircle && body.circles[0]) {
+      setSelectedCircle(body.circles[0].id);
+    }
   }
 
   async function createCircle(event: FormEvent<HTMLFormElement>) {
@@ -125,6 +129,29 @@ export function CircleClient({
     }
   }
 
+  async function removeMember(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedCircle) return;
+    const data = new FormData(event.currentTarget);
+    setBusy(true);
+    try {
+      const response = await fetch(`/api/circles/${selectedCircle}/members`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: data.get("userId") }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error);
+      event.currentTarget.reset();
+      setMessage("Miembro eliminado.");
+      await refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "No se pudo eliminar el miembro");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function removePost(id: string) {
     if (busy) return;
     setBusy(true);
@@ -135,6 +162,42 @@ export function CircleClient({
       setPosts((current) => current.filter((post) => post.id !== id));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "No se pudo eliminar");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function destroyCircle() {
+    if (!selected || selected.role !== "owner") return;
+    if (!window.confirm(`¿Eliminar el círculo "${selected.name}"? Se borrarán sus publicaciones.`)) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      const response = await fetch(`/api/circles/${selected.id}`, { method: "DELETE" });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error);
+      setMessage("Círculo eliminado.");
+      await refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "No se pudo eliminar el círculo");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function leaveSelectedCircle() {
+    if (!selected || selected.role === "owner") return;
+    if (!window.confirm(`¿Salir de "${selected.name}"?`)) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      const response = await fetch(`/api/circles/${selected.id}?action=leave`, { method: "DELETE" });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error);
+      setMessage("Saliste del círculo.");
+      await refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "No se pudo salir del círculo");
     } finally {
       setBusy(false);
     }
@@ -210,19 +273,41 @@ export function CircleClient({
                 key={circle.id}
               >
                 <i className={["circle-violet", "circle-cyan", "circle-rose"][index % 3]}><Users /></i>
-                <span><strong>{circle.name}</strong><small>{circle.memberCount} miembros</small></span>
+                <span><strong>{circle.name}</strong><small>{circle.memberCount} miembros · {circle.role === "owner" ? "dueño" : "miembro"}</small></span>
               </button>
             ))}
           </div>
+          {selected ? (
+            <div className="circle-manage-actions">
+              {selected.role === "owner" ? (
+                <button className="ghost-button danger" disabled={busy} onClick={() => void destroyCircle()}>
+                  <Trash2 size={16} /> Eliminar círculo
+                </button>
+              ) : (
+                <button className="ghost-button" disabled={busy} onClick={() => void leaveSelectedCircle()}>
+                  <LogOut size={16} /> Salir del círculo
+                </button>
+              )}
+            </div>
+          ) : null}
         </article>
         {selected?.role === "owner" && (
-          <article className="panel">
-            <span className="eyebrow"><UserPlus size={14} /> Añadir miembro</span>
-            <form className="compact-form" onSubmit={invite}>
-              <input name="userId" placeholder="ID de Discord" pattern="\d{10,25}" required />
-              <button className="ghost-button" disabled={busy}>Invitar</button>
-            </form>
-          </article>
+          <>
+            <article className="panel">
+              <span className="eyebrow"><UserPlus size={14} /> Añadir miembro</span>
+              <form className="compact-form" onSubmit={invite}>
+                <input name="userId" placeholder="ID de Discord" pattern="\d{10,25}" required />
+                <button className="ghost-button" disabled={busy}>Invitar</button>
+              </form>
+            </article>
+            <article className="panel">
+              <span className="eyebrow"><Trash2 size={14} /> Quitar miembro</span>
+              <form className="compact-form" onSubmit={removeMember}>
+                <input name="userId" placeholder="ID de Discord" pattern="\d{10,25}" required />
+                <button className="ghost-button danger" disabled={busy}>Eliminar</button>
+              </form>
+            </article>
+          </>
         )}
       </aside>
     </section>

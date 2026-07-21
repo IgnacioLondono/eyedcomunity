@@ -4,7 +4,7 @@ import { updateCommunitySettings } from "@/lib/eyedbot-api";
 
 const featureKey = z.enum([
   "activity", "achievements", "wrapped", "server", "lobby",
-  "ranking", "circle", "plans", "party", "challenges",
+  "ranking", "circle", "plans", "party", "challenges", "shop",
 ]);
 
 const patchSchema = z.object({
