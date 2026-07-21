@@ -1,13 +1,11 @@
-export const IS_DEMO_MODE =
-  process.env.NODE_ENV !== "production" &&
-  (!process.env.AUTH_DISCORD_ID ||
-    !process.env.AUTH_DISCORD_SECRET ||
-    !process.env.DISCORD_GUILD_ID);
+export const MISSING_PORTAL_CONFIG = [
+  "AUTH_SECRET",
+  "AUTH_DISCORD_ID",
+  "AUTH_DISCORD_SECRET",
+  "DISCORD_GUILD_ID",
+  "EYEDBOT_API_URL",
+  "COMMUNITY_API_KEY",
+  "COMMUNITY_SIGNING_SECRET",
+].filter((name) => !process.env[name]?.trim());
 
-export const DEMO_USER_ID = "399740358101303316";
-
-export const DEMO_USER = {
-  id: DEMO_USER_ID,
-  name: "Nova",
-  image: null,
-};
+export const IS_PORTAL_CONFIGURED = MISSING_PORTAL_CONFIG.length === 0;

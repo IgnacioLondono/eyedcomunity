@@ -1,3 +1,156 @@
+export type CommunityUser = {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  joinedAt: string | null;
+};
+
+export type RequestMetadata = { requestId: string };
+
+export type TrackingMetadata = {
+  trackingStartedAt: string | null;
+  timezone: string;
+  dataFrom: string | null;
+  dataTo: string | null;
+};
+
+export type ActivityDay = {
+  date: string;
+  messages: number;
+  voiceSeconds: number;
+  voiceMinutes: number;
+  xpEarned: number;
+};
+
+export type CommunityActivity = TrackingMetadata & RequestMetadata & {
+  user: CommunityUser;
+  activeVoice: null | {
+    userId: string;
+    startedAt: string;
+    checkpointAt: string;
+    uncheckpointedSeconds: number;
+  };
+  series: ActivityDay[];
+};
+
+export type RankingMetric = "xp" | "messages" | "voice";
+export type RankingPeriod = "all" | "week" | "month" | "year";
+export type CommunityRanking = TrackingMetadata & RequestMetadata & {
+  metric: RankingMetric;
+  period: RankingPeriod;
+  requesterPosition: number | null;
+  items: Array<{
+    position: number;
+    user: CommunityUser;
+    value: number;
+    voiceSeconds?: number;
+  }>;
+  nextCursor: string | null;
+};
+
+export type Challenge = {
+  id: string;
+  definition: { title: string; description: string; metric: string; target: number };
+  progress: number;
+  completed: boolean;
+  reward: { eyedCoins: number };
+  claimed: boolean;
+  claimedAt: string | null;
+};
+
+export type CommunityChallenges = RequestMetadata & {
+  userId: string;
+  period: { key: string; startsOn: string; endsOn: string; timezone: string };
+  items: Challenge[];
+};
+
+export type ChallengeClaim = RequestMetadata & {
+  claimed: true;
+  challengeId: string;
+  reward: { eyedCoins: number };
+  balance: number;
+};
+
+export type Achievement = {
+  id: string;
+  definition: { title: string; description: string; metric: string; target: number };
+  progress: number;
+  unlocked: boolean;
+  unlockedAt: string | null;
+  reward: { eyedCoins: number };
+};
+
+export type CommunityAchievements = RequestMetadata & {
+  userId: string;
+  items: Achievement[];
+};
+
+export type PlanStatus = "upcoming" | "active" | "completed" | "cancelled";
+export type CommunityPlan = {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  startsAt: string;
+  endsAt: string | null;
+  status: PlanStatus;
+  visibility: "guild" | "private";
+  ownerId: string;
+  capacity: number;
+  attendeeCount: number;
+  isAttendee: boolean;
+  invitationStatus: "pending" | "accepted" | "rejected" | null;
+  canManage: boolean;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PartyStatus = "waiting" | "active" | "completed" | "cancelled";
+export type PartyGameType = "trivia" | "dice";
+export type TriviaState = {
+  questionId?: string;
+  prompt?: string;
+  choices?: string[];
+  answeredUserIds?: string[];
+  winners?: string[];
+};
+export type DiceState = { rolls?: Record<string, number>; winners?: string[] };
+export type CommunityParty = {
+  id: string;
+  title: string;
+  gameType: PartyGameType;
+  status: PartyStatus;
+  ownerId: string;
+  capacity: number;
+  participantCount: number;
+  turnUserId: string | null;
+  version: number;
+  state: TriviaState | DiceState;
+  participants: Array<{ userId: string; joinedAt: string }>;
+  isParticipant: boolean;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+};
+
+export type PartyAction = {
+  actionId: string;
+  expectedVersion: number;
+  type: "start" | "answer" | "roll";
+  choice?: number;
+};
+
+export type CommunityEvent = {
+  type: string;
+  scope: "self" | "guild_public" | "participants" | "staff";
+  subjectUserId: string | null;
+  aggregateId: string | null;
+  payload: Record<string, unknown>;
+  createdAt: string;
+};
+
 export type CommunityProfile = {
   user: {
     id: string;
@@ -42,7 +195,7 @@ export type CommunityServer = {
     joins: number;
     leaves: number;
   };
-  trackingStartedAt: string;
+  trackingStartedAt: string | null;
   daily: Array<{
     date: string;
     messages: number;
@@ -63,18 +216,26 @@ export type CommunityServer = {
 
 export type CommunityWrapped = {
   year: number;
-  availableFrom: string | null;
-  isCompletePeriod: boolean;
+  dataFrom: string | null;
+  dataTo: string | null;
+  trackingStartedAt: string | null;
+  timezone: string;
+  generatedAt: string;
+  finalized: boolean;
+  schemaVersion: number;
+  requestId: string;
   user: CommunityProfile["user"];
   stats: {
     messages: number;
+    voiceSeconds: number;
     voiceMinutes: number;
     xpEarned: number;
     activeDays: number;
     favoriteDay: string | null;
-    monthly?: Array<{
+    monthly: Array<{
       month: number;
       messages: number;
+      voiceSeconds: number;
       voiceMinutes: number;
       xpEarned: number;
     }>;
@@ -101,8 +262,6 @@ export type CommunityMemberSummary = {
 };
 
 export type CommunityMemberProfile = {
-  user: CommunityMemberSummary;
-  gacha: CommunityProfile["gacha"];
+  user: Omit<CommunityMemberSummary, "activity">;
   badges: string[];
-  mutualCircles: string[];
 };

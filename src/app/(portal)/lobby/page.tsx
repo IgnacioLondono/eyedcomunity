@@ -3,14 +3,13 @@ import { Radio, Users } from "lucide-react";
 import { auth } from "@/auth";
 import { MemberLobby } from "@/components/member-lobby";
 import { PageHeader } from "@/components/page-header";
-import { DEMO_USER_ID, IS_DEMO_MODE } from "@/lib/demo";
 import { EyedBotApiError, getCommunityMembers } from "@/lib/eyedbot-api";
 import { getProfileMediaBatch } from "@/lib/media/service";
 
 export default async function LobbyPage() {
   const session = await auth();
-  if (!session?.user?.id && !IS_DEMO_MODE) redirect("/");
-  const userId = session?.user?.id || DEMO_USER_ID;
+  if (!session?.user?.id) redirect("/");
+  const userId = session.user.id;
 
   let members: Awaited<ReturnType<typeof getCommunityMembers>> | null = null;
   try {
@@ -20,20 +19,18 @@ export default async function LobbyPage() {
   }
 
   if (!members) return <div className="empty-card"><h1>El lobby no está disponible</h1><p>Inténtalo nuevamente en unos minutos.</p></div>;
-  if (!IS_DEMO_MODE) {
-    try {
-      const customMedia = await getProfileMediaBatch(members.map((member) => member.id));
-      members = members.map((member) => {
-        const custom = customMedia.get(member.id);
-        return {
-          ...member,
-          avatarUrl: custom?.avatarUrl || member.avatarUrl,
-          bannerUrl: custom?.bannerUrl || member.bannerUrl,
-        };
-      });
-    } catch (error) {
-      console.error("No se pudieron cargar los perfiles personalizados", error);
-    }
+  try {
+    const customMedia = await getProfileMediaBatch(members.map((member) => member.id));
+    members = members.map((member) => {
+      const custom = customMedia.get(member.id);
+      return {
+        ...member,
+        avatarUrl: custom?.avatarUrl || member.avatarUrl,
+        bannerUrl: custom?.bannerUrl || member.bannerUrl,
+      };
+    });
+  } catch (error) {
+    console.error("No se pudieron cargar los perfiles personalizados", error);
   }
   const online = members.filter((member) => member.status !== "offline").length;
   return (

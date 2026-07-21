@@ -29,12 +29,10 @@ export function CircleClient({
   initialCircles,
   initialPosts,
   viewerId,
-  demo,
 }: {
   initialCircles: Circle[];
   initialPosts: Post[];
   viewerId: string;
-  demo: boolean;
 }) {
   const [circles, setCircles] = useState(initialCircles);
   const [posts, setPosts] = useState(initialPosts);
@@ -61,7 +59,6 @@ export function CircleClient({
 
   async function createCircle(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (demo) return setMessage("Las modificaciones están desactivadas en la demo.");
     setBusy(true);
     setMessage("");
     const data = new FormData(event.currentTarget);
@@ -85,7 +82,6 @@ export function CircleClient({
 
   async function publish(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (demo) return setMessage("Las publicaciones están desactivadas en la demo.");
     if (!selectedCircle) return setMessage("Primero crea o selecciona un círculo.");
     setBusy(true);
     setMessage("");
@@ -108,7 +104,7 @@ export function CircleClient({
 
   async function invite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (demo || !selectedCircle) return setMessage("Esta acción no está disponible.");
+    if (!selectedCircle) return setMessage("Esta acción no está disponible.");
     const data = new FormData(event.currentTarget);
     setBusy(true);
     try {
@@ -130,7 +126,7 @@ export function CircleClient({
   }
 
   async function removePost(id: string) {
-    if (demo || busy) return;
+    if (busy) return;
     setBusy(true);
     try {
       const response = await fetch(`/api/posts/${id}`, { method: "DELETE" });
@@ -153,13 +149,13 @@ export function CircleClient({
             onChange={(event) => setContent(event.target.value)}
             placeholder={selected ? `Comparte algo con ${selected.name}...` : "Crea un círculo para comenzar..."}
             maxLength={2000}
-            disabled={busy || demo || !selectedCircle}
+            disabled={busy || !selectedCircle}
           />
           <label className="ghost-button">
             <ImageIcon size={18} /> {file ? file.name : "Foto"}
             <input type="file" accept="image/png,image/jpeg,image/webp,image/avif" hidden onChange={(event) => setFile(event.target.files?.[0] || null)} />
           </label>
-          <button className="secondary-button" disabled={busy || demo || !selectedCircle}>
+          <button className="secondary-button" disabled={busy || !selectedCircle}>
             <Send size={17} /> Publicar
           </button>
         </form>
@@ -201,7 +197,7 @@ export function CircleClient({
             <form className="compact-form" onSubmit={createCircle}>
               <input name="name" placeholder="Nombre" minLength={2} maxLength={80} required />
               <input name="description" placeholder="Descripción opcional" maxLength={240} />
-              <button className="secondary-button" disabled={busy || demo}>Crear</button>
+              <button className="secondary-button" disabled={busy}>Crear</button>
             </form>
           )}
           <div className="circle-list">
@@ -222,7 +218,7 @@ export function CircleClient({
             <span className="eyebrow"><UserPlus size={14} /> Añadir miembro</span>
             <form className="compact-form" onSubmit={invite}>
               <input name="userId" placeholder="ID de Discord" pattern="\d{10,25}" required />
-              <button className="ghost-button" disabled={busy || demo}>Invitar</button>
+              <button className="ghost-button" disabled={busy}>Invitar</button>
             </form>
           </article>
         )}

@@ -1,14 +1,23 @@
-import { CalendarDays, Plus } from "lucide-react";
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
 import { PageHeader } from "@/components/page-header";
+import { PlansClient } from "@/components/plans-client";
+import { EyedBotApiError, listCommunityPlans } from "@/lib/eyedbot-api";
 
-export default function PlansPage() {
+export default async function PlansPage() {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/");
+  let plans;
+  try {
+    plans = (await listCommunityPlans(session.user.id)).plans;
+  } catch (error) {
+    if (error instanceof EyedBotApiError && error.status === 403) redirect("/access-denied");
+    return <section className="empty-card"><h1>Las quedadas no están disponibles</h1><p>EyedBot no pudo cargar los planes.</p></section>;
+  }
   return (
     <>
-      <PageHeader eyebrow="Comunidad" title="Quedadas" description="Los próximos planes reales de la comunidad aparecerán aquí." action={<span className="secondary-button"><Plus size={17} /> Próximamente</span>} />
-      <section className="panel empty-plan">
-        <CalendarDays />
-        <div><h3>Aún no hay quedadas publicadas</h3><p>El calendario de planes todavía no está conectado. Ya no mostramos eventos de demostración como si fueran reales.</p></div>
-      </section>
+      <PageHeader eyebrow="Comunidad" title="Quedadas" description="Crea, administra y participa en planes persistidos por EyedBot." />
+      <PlansClient plans={plans} viewerId={session.user.id} />
     </>
   );
 }

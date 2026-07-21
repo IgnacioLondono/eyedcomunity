@@ -6,15 +6,14 @@ import { auth } from "@/auth";
 import { ProfileMediaEditor } from "@/components/profile-media-editor";
 import { StatCard } from "@/components/stat-card";
 import { EyedBotApiError, getCommunityProfile } from "@/lib/eyedbot-api";
-import { DEMO_USER_ID, IS_DEMO_MODE } from "@/lib/demo";
 import { getProfileMedia, getQuota } from "@/lib/media/service";
 
 const compact = new Intl.NumberFormat("es", { notation: "compact", maximumFractionDigits: 1 });
 
 export default async function Dashboard() {
   const session = await auth();
-  if (!session?.user?.id && !IS_DEMO_MODE) redirect("/");
-  const userId = session?.user?.id || DEMO_USER_ID;
+  if (!session?.user?.id) redirect("/");
+  const userId = session.user.id;
 
   let profile;
   try {
@@ -26,12 +25,10 @@ export default async function Dashboard() {
 
   let customMedia = { avatarUrl: null as string | null, bannerUrl: null as string | null };
   let quota = { usedBytes: 0, quotaBytes: 104_857_600 };
-  if (!IS_DEMO_MODE) {
-    try {
-      [customMedia, quota] = await Promise.all([getProfileMedia(userId), getQuota(userId)]);
-    } catch (error) {
-      console.error("No se pudo cargar el perfil personalizado", error);
-    }
+  try {
+    [customMedia, quota] = await Promise.all([getProfileMedia(userId), getQuota(userId)]);
+  } catch (error) {
+    console.error("No se pudo cargar el perfil personalizado", error);
   }
 
   const voiceHours = Math.round((profile.stats.voiceMinutes / 60) * 10) / 10;
@@ -57,8 +54,8 @@ export default async function Dashboard() {
       </section>
 
       <section className="stats-grid">
-        <StatCard icon={MessageCircle} label="Mensajes" value={compact.format(profile.stats.messages)} detail="Desde que llegó EyedBot" accent="violet" />
-        <StatCard icon={Clock3} label="Tiempo en voz" value={`${voiceHours} h`} detail={`${compact.format(profile.stats.voiceMinutes)} minutos`} accent="cyan" />
+        <StatCard icon={MessageCircle} label="Mensajes" value={compact.format(profile.stats.messages)} detail="Estado actual de leveling" accent="violet" />
+        <StatCard icon={Clock3} label="Tiempo en voz" value={`${voiceHours} h`} detail="Estado actual reportado" accent="cyan" />
         <StatCard icon={Trophy} label="Experiencia" value={compact.format(profile.stats.xp)} detail={`Nivel ${profile.stats.level}`} accent="amber" />
         <StatCard icon={Coins} label="EyedCoins" value={compact.format(profile.gacha.coins)} detail={`${profile.gacha.collectionSize} objetos`} accent="rose" />
       </section>
@@ -67,7 +64,6 @@ export default async function Dashboard() {
         initialAvatarUrl={customMedia.avatarUrl}
         initialBannerUrl={customMedia.bannerUrl}
         initialQuota={quota}
-        demo={IS_DEMO_MODE}
       />
 
       <section className="split-grid">

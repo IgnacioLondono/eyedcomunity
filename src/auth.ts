@@ -1,20 +1,26 @@
 import NextAuth from "next-auth";
 import Discord from "next-auth/providers/discord";
-import { IS_DEMO_MODE } from "@/lib/demo";
+import { buildCommunitySignedHeaders, getEyedBotUrl } from "@/lib/eyedbot-api";
 
 const guildId = process.env.DISCORD_GUILD_ID?.trim();
 const discordClientId = process.env.AUTH_DISCORD_ID?.trim();
 const discordClientSecret = process.env.AUTH_DISCORD_SECRET?.trim();
 
 async function verifyWithEyedBot(userId: string) {
-  const baseUrl = process.env.EYEDBOT_API_URL?.replace(/\/+$/, "");
-  const apiKey = process.env.COMMUNITY_API_KEY || process.env.EYEDBOT_API_KEY;
-  if (!baseUrl || !apiKey) return null;
+  const path = `/api/community/membership/${encodeURIComponent(userId)}`;
+  let url: string;
+  let headers: HeadersInit;
+  try {
+    url = getEyedBotUrl(path);
+    headers = { ...buildCommunitySignedHeaders({ method: "GET", path, userId }), Accept: "application/json" };
+  } catch {
+    return null;
+  }
 
   const response = await fetch(
-    `${baseUrl}/api/community/membership/${encodeURIComponent(userId)}`,
+    url,
     {
-      headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" },
+      headers,
       cache: "no-store",
       signal: AbortSignal.timeout(8_000),
     },
@@ -71,7 +77,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session;
     },
     authorized({ auth: session }) {
-      return IS_DEMO_MODE || Boolean(session?.user?.id);
+      return Boolean(session?.user?.id);
     },
   },
 });

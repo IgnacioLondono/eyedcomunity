@@ -5,12 +5,11 @@ import { ArrowRight, CalendarDays, Clock3, Flame, MessageCircle, Sparkles, Star,
 import { auth } from "@/auth";
 import { WrappedActions } from "@/components/wrapped-actions";
 import { EyedBotApiError, getCommunityWrapped } from "@/lib/eyedbot-api";
-import { DEMO_USER_ID, IS_DEMO_MODE } from "@/lib/demo";
 
 export default async function WrappedPage({ params }: { params: Promise<{ year: string }> }) {
   const session = await auth();
-  if (!session?.user?.id && !IS_DEMO_MODE) redirect("/");
-  const userId = session?.user?.id || DEMO_USER_ID;
+  if (!session?.user?.id) redirect("/");
+  const userId = session.user.id;
 
   const { year: rawYear } = await params;
   const year = Number.parseInt(rawYear, 10);
@@ -28,9 +27,7 @@ export default async function WrappedPage({ params }: { params: Promise<{ year: 
   const messagesPerDay = wrapped.stats.activeDays > 0
     ? Math.round(wrapped.stats.messages / wrapped.stats.activeDays)
     : 0;
-  const monthly = wrapped.stats.monthly?.length
-    ? wrapped.stats.monthly
-    : Array.from({ length: 12 }, (_, index) => ({ month: index + 1, messages: 0, voiceMinutes: 0, xpEarned: 0 }));
+  const monthly = wrapped.stats.monthly;
   const maxMonthly = Math.max(1, ...monthly.map((month) => month.messages));
   const favoriteMonth = monthly.reduce((best, month) => month.messages > best.messages ? month : best, monthly[0]);
   const persona = voiceHours >= 100
@@ -52,10 +49,10 @@ export default async function WrappedPage({ params }: { params: Promise<{ year: 
         <h1>Este fue el año de<br /><em>{wrapped.user.displayName}</em></h1>
         <p>Una historia escrita entre mensajes, llamadas y momentos dentro de EyedComun.</p>
         <WrappedActions year={wrapped.year} />
-        {!wrapped.isCompletePeriod && (
+        {!wrapped.finalized && (
           <div className="history-notice">
             <CalendarDays size={17} />
-            Datos disponibles desde {wrapped.availableFrom ? new Date(wrapped.availableFrom).toLocaleDateString("es") : "el inicio del seguimiento"}.
+            Cobertura {wrapped.dataFrom && wrapped.dataTo ? `${wrapped.dataFrom} — ${wrapped.dataTo}` : "aún sin datos"} · {wrapped.timezone}.
           </div>
         )}
       </section>
@@ -114,7 +111,7 @@ export default async function WrappedPage({ params }: { params: Promise<{ year: 
       </section>
 
       <section className="wrapped-summary">
-        <div><Flame /><span>Días activo</span><strong>{wrapped.stats.activeDays}</strong><small>de {wrapped.isCompletePeriod ? 365 : "los registrados"}</small></div>
+        <div><Flame /><span>Días activo</span><strong>{wrapped.stats.activeDays}</strong><small>dentro de la cobertura registrada</small></div>
         <div><Trophy /><span>Posición final</span><strong>#{wrapped.stats.rank || "—"}</strong><small>{wrapped.stats.rank && wrapped.stats.rank <= 10 ? "Top 10 de la comunidad" : "Sigue escalando"}</small></div>
         <div><CalendarDays /><span>Tu mejor día</span><strong>{formatFavoriteDay(wrapped.stats.favoriteDay)}</strong><small>Tu pico de actividad</small></div>
         <div><Zap /><span>XP conseguida</span><strong>{wrapped.stats.xpEarned.toLocaleString("es")}</strong><small>durante este periodo</small></div>

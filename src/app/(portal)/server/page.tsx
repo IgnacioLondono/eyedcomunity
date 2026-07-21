@@ -4,14 +4,13 @@ import { Clock3, MessageCircle, TrendingUp, UserPlus } from "lucide-react";
 import { auth } from "@/auth";
 import { StatCard } from "@/components/stat-card";
 import { EyedBotApiError, getCommunityServer } from "@/lib/eyedbot-api";
-import { DEMO_USER_ID, IS_DEMO_MODE } from "@/lib/demo";
 
 const compact = new Intl.NumberFormat("es", { notation: "compact", maximumFractionDigits: 1 });
 
 export default async function ServerPage() {
   const session = await auth();
-  if (!session?.user?.id && !IS_DEMO_MODE) redirect("/");
-  const userId = session?.user?.id || DEMO_USER_ID;
+  if (!session?.user?.id) redirect("/");
+  const userId = session.user.id;
 
   let data;
   try {

@@ -11,12 +11,10 @@ export function ProfileMediaEditor({
   initialAvatarUrl,
   initialBannerUrl,
   initialQuota,
-  demo,
 }: {
   initialAvatarUrl: string | null;
   initialBannerUrl: string | null;
   initialQuota: Quota;
-  demo: boolean;
 }) {
   const [images, setImages] = useState({ avatar: initialAvatarUrl, banner: initialBannerUrl });
   const [quota, setQuota] = useState(initialQuota);
@@ -27,7 +25,6 @@ export function ProfileMediaEditor({
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-    if (demo) return setMessage("Las cargas están desactivadas en la demo.");
     setBusy(purpose);
     setMessage("");
     const data = new FormData();
@@ -47,7 +44,6 @@ export function ProfileMediaEditor({
   }
 
   async function remove(purpose: Purpose) {
-    if (demo) return setMessage("Los cambios están desactivados en la demo.");
     setBusy(purpose);
     try {
       const response = await fetch("/api/profile/media", {
@@ -91,12 +87,12 @@ export function ProfileMediaEditor({
                   type="file"
                   accept="image/png,image/jpeg,image/webp,image/avif"
                   hidden
-                  disabled={Boolean(busy) || demo}
+                  disabled={Boolean(busy)}
                   onChange={(event) => upload(purpose, event)}
                 />
               </label>
               {images[purpose] && (
-                <button className="ghost-button" onClick={() => remove(purpose)} disabled={Boolean(busy) || demo}>
+                <button className="ghost-button" onClick={() => remove(purpose)} disabled={Boolean(busy)}>
                   <Trash2 size={15} /> Quitar
                 </button>
               )}

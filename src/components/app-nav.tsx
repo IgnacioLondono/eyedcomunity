@@ -8,10 +8,9 @@ type Props = {
     name?: string | null;
     image?: string | null;
   };
-  demo?: boolean;
 };
 
-export function AppNav({ user, demo = false }: Props) {
+export function AppNav({ user }: Props) {
   return (
     <header className="app-nav">
       <Link href="/dashboard" className="brand">
@@ -27,17 +26,13 @@ export function AppNav({ user, demo = false }: Props) {
         {user.image ? (
           <Image src={user.image} alt="" width={34} height={34} className="avatar" />
         ) : <span className="avatar avatar-fallback" />}
-        <span>{demo ? "Modo demo" : user.name || "Miembro"}</span>
-        {demo ? (
-          <Link className="icon-button" href="/" aria-label="Volver al inicio"><LogOut size={17} /></Link>
-        ) : (
-          <form action={async () => {
-            "use server";
-            await signOut({ redirectTo: "/" });
-          }}>
-            <button className="icon-button" aria-label="Cerrar sesión"><LogOut size={17} /></button>
-          </form>
-        )}
+        <span>{user.name || "Miembro"}</span>
+        <form action={async () => {
+          "use server";
+          await signOut({ redirectTo: "/" });
+        }}>
+          <button className="icon-button" aria-label="Cerrar sesión"><LogOut size={17} /></button>
+        </form>
       </div>
     </header>
   );

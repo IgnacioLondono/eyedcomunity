@@ -1,41 +1,26 @@
 import "server-only";
 
 import { auth } from "@/auth";
-import { IS_DEMO_MODE } from "./demo";
+import { ApiAccessError, assertSameOrigin } from "./bff-guards";
+import { buildCommunitySignedHeaders, getEyedBotUrl } from "./eyedbot-api";
+import { membershipCacheValue } from "./membership-cache";
 
 const membershipCache = new Map<string, { valid: boolean; expiresAt: number }>();
 const MEMBERSHIP_TTL_MS = 2 * 60 * 1000;
 
-export class ApiAccessError extends Error {
-  constructor(message: string, public readonly status: number) {
-    super(message);
-  }
-}
+export { ApiAccessError, assertSameOrigin };
 
 export async function requireCommunityViewer(options: { mutation?: boolean } = {}) {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) {
-    if (IS_DEMO_MODE && options.mutation) {
-      throw new ApiAccessError("Las modificaciones están desactivadas en la demo", 403);
-    }
     throw new ApiAccessError("Debes iniciar sesión", 401);
   }
-  if (options.mutation && IS_DEMO_MODE) {
-    throw new ApiAccessError("Las modificaciones están desactivadas en la demo", 403);
+  if (options.mutation && !/^\d{10,25}$/.test(userId)) {
+    throw new ApiAccessError("La identidad de sesión no es válida", 401);
   }
   await assertCurrentMember(userId);
   return { userId, session };
-}
-
-export function assertSameOrigin(request: Request) {
-  const origin = request.headers.get("origin");
-  const configuredOrigin = process.env.AUTH_URL
-    ? new URL(process.env.AUTH_URL).origin
-    : new URL(request.url).origin;
-  if (!origin || origin !== configuredOrigin) {
-    throw new ApiAccessError("Origen de solicitud no permitido", 403);
-  }
 }
 
 export function assertUploadEnvelope(request: Request) {
@@ -52,22 +37,34 @@ export async function assertCurrentMember(userId: string) {
     return;
   }
 
-  const baseUrl = process.env.EYEDBOT_API_URL?.replace(/\/+$/, "");
-  const apiKey = process.env.COMMUNITY_API_KEY || process.env.EYEDBOT_API_KEY;
-  if (!baseUrl || !apiKey) throw new ApiAccessError("EyedBot no está configurado", 503);
+  const path = `/api/community/membership/${encodeURIComponent(userId)}`;
+  let url: string;
+  let headers: HeadersInit;
+  try {
+    url = getEyedBotUrl(path);
+    headers = { ...buildCommunitySignedHeaders({ method: "GET", path, userId }), Accept: "application/json" };
+  } catch {
+    throw new ApiAccessError("EyedBot no está configurado", 503);
+  }
 
   const response = await fetch(
-    `${baseUrl}/api/community/membership/${encodeURIComponent(userId)}`,
+    url,
     {
-      headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" },
+      headers,
       cache: "no-store",
       signal: AbortSignal.timeout(8_000),
     },
   ).catch(() => null);
-  const valid = response?.ok === true;
-  membershipCache.set(userId, { valid, expiresAt: Date.now() + MEMBERSHIP_TTL_MS });
   if (!response) throw new ApiAccessError("No se pudo verificar la membresía", 503);
-  if (!valid) throw new ApiAccessError("Ya no perteneces al servidor", response.status === 404 ? 403 : response.status);
+  const cacheValue = membershipCacheValue(response.status);
+  if (cacheValue !== null) {
+    membershipCache.set(userId, { valid: cacheValue, expiresAt: Date.now() + MEMBERSHIP_TTL_MS });
+  }
+  if (!response.ok) {
+    if (cacheValue === false) throw new ApiAccessError("Ya no perteneces al servidor", 403);
+    if (response.status === 429) throw new ApiAccessError("La verificación está temporalmente limitada", 429);
+    throw new ApiAccessError("No se pudo verificar la membresía", response.status >= 500 ? 503 : response.status);
+  }
 }
 
 export function accessErrorResponse(error: unknown) {
