@@ -26,7 +26,7 @@ export default async function ShopPage() {
       <PageHeader
         eyebrow="EyedShop"
         title="Tienda de la comunidad"
-        description="Canjea tus EyedCoins por personajes, roles y objetos creados desde EyedBot."
+        description="Canjea tus EyedCoins por el catálogo gacha de EyedBot y extras de la comunidad."
         action={<span className="secondary-button"><Coins size={17} /> {catalog.balance.toLocaleString("es")} EyedCoins</span>}
       />
       {catalog.products.length ? (
@@ -35,7 +35,7 @@ export default async function ShopPage() {
         <section className="empty-card">
           <ShoppingBag />
           <h2>La tienda está vacía</h2>
-          <p>Los administradores todavía no han publicado productos desde EyedBot.</p>
+          <p>Activa la tienda gacha en EyedBot o publica personajes visibles en el catálogo.</p>
         </section>
       )}
     </>

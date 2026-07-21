@@ -266,7 +266,7 @@ button { font: inherit; }
 .ranking-row.is-you { margin: 0 -.4rem; padding: 0 1.2rem; border-radius: 10px; background: rgba(157,108,255,.08); color: white; }
 .ranking-member { display: flex; align-items: center; gap: .65rem; color: #e2dfe7; }.ranking-member i { width: 30px; height: 30px; }.ranking-member small { color: #b99bf5; }
 
-.circle-layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 1rem; }
+.circle-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 1rem; }
 .feed, .circle-aside { display: grid; align-content: start; gap: 1rem; }
 .composer { display: grid; grid-template-columns: 36px 1fr auto; align-items: center; gap: .8rem; padding: .9rem 1rem; color: #77727e; font-size: .82rem; }
 .composer .avatar { width: 36px; height: 36px; }.composer button, .post footer button, .game-card button, .idea-card button { border: 0; color: #a7a2ad; background: transparent; cursor: pointer; display: flex; align-items: center; gap: .4rem; }
@@ -283,12 +283,38 @@ button { font: inherit; }
 .circle-list button { display: flex; align-items: center; gap: .7rem; width: 100%; margin: .35rem 0; padding: .5rem; border: 1px solid transparent; border-radius: 11px; color: #d8d3df; text-align: left; background: transparent; cursor: pointer; }
 .circle-list button:hover, .circle-list button.selected { border-color: var(--line); background: rgba(157,108,255,.08); }
 .compact-form { display: grid; gap: .55rem; margin: .8rem 0; }
-.compact-form input { min-width: 0; padding: .7rem .8rem; border: 1px solid var(--line); border-radius: 9px; outline: 0; color: white; background: rgba(255,255,255,.035); }
+.compact-form input, .compact-form select { min-width: 0; padding: .7rem .8rem; border: 1px solid var(--line); border-radius: 9px; outline: 0; color: white; background: rgba(255,255,255,.035); }
 .compact-form button { justify-content: center; }
 .form-message { margin: 0; padding: .7rem 1rem; border: 1px solid rgba(157,108,255,.18); border-radius: 10px; color: #cdb9ef; background: rgba(157,108,255,.07); font-size: .78rem; }
 .post header .post-delete { margin-left: auto; border: 0; color: #837b89; background: transparent; cursor: pointer; }
 .circle-photo { position: relative; width: 100%; aspect-ratio: 16 / 10; margin-top: 1rem; overflow: hidden; border-radius: 13px; background: #0b0a0f; }
 .circle-photo img { object-fit: contain; }
+.circle-members-panel .panel-heading strong { color: #c2a9f1; background: rgba(157,108,255,.1); }
+.circle-member-list, .party-participants { display: grid; gap: .55rem; margin-top: .8rem; }
+.circle-member-row, .party-participants > div { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: .7rem; }
+.circle-member-row .avatar, .party-participants .avatar { width: 34px; height: 34px; position: relative; }
+.circle-member-row strong, .circle-member-row small, .party-participants strong, .party-participants small { display: block; }
+.circle-member-row small, .party-participants small { color: var(--muted); margin-top: .15rem; font-size: .62rem; }
+.member-picker { display: grid; gap: .55rem; margin: .8rem 0; }
+.member-picker.disabled { opacity: .6; }
+.member-picker-search { display: flex; align-items: center; gap: .45rem; padding: 0 .7rem; border: 1px solid var(--line); border-radius: 10px; color: #716c77; background: rgba(0,0,0,.14); }
+.member-picker-search input { width: 100%; height: 38px; border: 0; outline: 0; color: white; background: transparent; }
+.member-picker-list { max-height: 220px; overflow: auto; display: grid; gap: .35rem; padding: .35rem; border: 1px solid var(--line); border-radius: 12px; background: rgba(0,0,0,.12); }
+.member-picker-list > p { margin: .6rem; color: var(--muted); font-size: .72rem; }
+.member-picker-list button { display: grid; grid-template-columns: 32px 1fr; align-items: center; gap: .65rem; width: 100%; padding: .45rem .55rem; border: 1px solid transparent; border-radius: 10px; color: inherit; text-align: left; background: transparent; cursor: pointer; }
+.member-picker-list button:hover, .member-picker-list button.selected { border-color: rgba(157,108,255,.25); background: rgba(157,108,255,.08); }
+.member-picker-list .avatar { width: 32px; height: 32px; position: relative; }
+.member-picker-list .status-dot { position: absolute; right: -1px; bottom: 0; border: 2px solid #121017; }
+.member-picker-list strong, .member-picker-list small { display: block; }
+.member-picker-list small { color: var(--muted); margin-top: .12rem; font-size: .62rem; }
+.party-console { display: grid; gap: 1rem; }
+.party-create-form { grid-template-columns: 1.4fr .8fr .5fr auto; align-items: center; }
+.party-board { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 1rem; }
+.party-detail { display: grid; gap: 1rem; align-content: start; }
+.party-meta { display: flex; flex-wrap: wrap; gap: .8rem 1.2rem; color: var(--muted); font-size: .75rem; }
+.party-invite { display: grid; gap: .55rem; padding-top: .4rem; border-top: 1px solid var(--line); }
+.party-wait, .party-game { margin: 0; }
+.party-game { display: grid; gap: .7rem; }
 
 .profile-media-editor { margin: 1rem 0; }
 .banner-color-preview { height: 96px; border-radius: 12px; border: 1px solid var(--line); margin-bottom: 1rem; background-size: cover; background-position: center; }
@@ -472,8 +498,7 @@ button { font: inherit; }
   .challenge-banner { grid-template-columns: auto 1fr; }.challenge-banner > span { grid-column: 2; }.challenge-card { grid-template-columns: 42px 1fr; }.challenge-card > b { grid-column: 2; }
   .roadmap-steps { grid-template-columns: 1fr; gap: .4rem; }.roadmap-steps > i { width: 1px; height: 20px; justify-self: center; }
   .integration-card { align-items: flex-start; flex-direction: column; }
-  .admin-overview, .admin-system-grid, .admin-feature-grid { grid-template-columns: 1fr; }
-  .admin-apply-bar { align-items: stretch; flex-direction: column; }
+  .circle-layout, .party-board, .party-create-form { grid-template-columns: 1fr; }
   .member-grid { grid-template-columns: 1fr; }
   .public-profile-main { grid-template-columns: 82px 1fr; padding-inline: 1.2rem; }.public-avatar { width: 82px; height: 82px; }.public-profile-main .secondary-button { grid-column: 1 / -1; }.profile-badges { padding-left: 1.2rem; }
   .wrapped-opening { min-height: 620px; }.wrapped-glance { grid-template-columns: 1fr 1fr; }.wrapped-glance div { padding: .8rem; }

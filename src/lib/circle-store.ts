@@ -102,6 +102,34 @@ export async function addCircleMember(ownerId: string, circleId: string, memberI
   }
 }
 
+export async function listCircleMembers(viewerId: string, circleId: string) {
+  await ensureMigrations();
+  const [membership] = await getPool().query<Array<RowDataPacket>>(
+    "SELECT 1 AS ok FROM circle_members WHERE circle_id = ? AND user_id = ? LIMIT 1",
+    [circleId, viewerId],
+  );
+  if (!membership[0]) throw new CirclePermissionError();
+  const [rows] = await getPool().query<Array<RowDataPacket & {
+    userId: string;
+    role: string;
+    displayName: string | null;
+    joinedAt: Date;
+  }>>(
+    `SELECT cm.user_id AS userId, cm.role, COALESCE(u.display_name, cm.user_id) AS displayName, cm.joined_at AS joinedAt
+     FROM circle_members cm
+     LEFT JOIN community_users u ON u.discord_id = cm.user_id
+     WHERE cm.circle_id = ?
+     ORDER BY cm.role = 'owner' DESC, cm.joined_at ASC`,
+    [circleId],
+  );
+  return rows.map((row) => ({
+    userId: String(row.userId),
+    role: String(row.role),
+    displayName: String(row.displayName || row.userId),
+    joinedAt: new Date(row.joinedAt).toISOString(),
+  }));
+}
+
 export async function listCirclePosts(userId: string, circleId?: string | null) {
   await ensureMigrations();
   const params: string[] = [userId];

@@ -4,6 +4,7 @@ import { CircleClient } from "@/components/circle-client";
 import { PageHeader } from "@/components/page-header";
 import { requireCommunityViewer } from "@/lib/community-auth";
 import { listCirclePosts, listCircles } from "@/lib/circle-store";
+import { getCommunityDirectory } from "@/lib/eyedbot-api";
 
 export const dynamic = "force-dynamic";
 
@@ -17,32 +18,43 @@ export default async function CirclePage() {
     id: string; circleId: string; circleName: string; authorId: string; authorName: string;
     authorAvatarId: string | null; content: string; mediaId: string | null; createdAt: string;
   }> = [];
+  let directory: Array<{
+    id: string; username: string; displayName: string; avatarUrl: string | null; status?: string;
+  }> = [];
 
   try {
     const viewer = await requireCommunityViewer();
     viewerId = viewer.userId;
-    const [storedCircles, storedPosts] = await Promise.all([
+    const [storedCircles, storedPosts, members] = await Promise.all([
       listCircles(viewerId),
       listCirclePosts(viewerId),
+      getCommunityDirectory(viewerId).catch(() => []),
     ]);
     circles = storedCircles.map((circle) => ({
-        id: circle.id,
-        name: circle.name,
-        description: circle.description,
-        ownerId: circle.ownerId,
-        role: circle.role,
-        memberCount: circle.memberCount,
-      }));
+      id: circle.id,
+      name: circle.name,
+      description: circle.description,
+      ownerId: circle.ownerId,
+      role: circle.role,
+      memberCount: circle.memberCount,
+    }));
     posts = storedPosts.map((post) => ({
-        id: post.id,
-        circleId: post.circleId,
-        circleName: post.circleName,
-        authorId: post.authorId,
-        authorName: post.authorName,
-        authorAvatarId: post.authorAvatarId,
-        content: post.content,
-        mediaId: post.mediaId,
-        createdAt: new Date(post.createdAt).toISOString(),
+      id: post.id,
+      circleId: post.circleId,
+      circleName: post.circleName,
+      authorId: post.authorId,
+      authorName: post.authorName,
+      authorAvatarId: post.authorAvatarId,
+      content: post.content,
+      mediaId: post.mediaId,
+      createdAt: new Date(post.createdAt).toISOString(),
+    }));
+    directory = members.map((member) => ({
+      id: member.id,
+      username: member.username,
+      displayName: member.displayName,
+      avatarUrl: member.avatarUrl,
+      status: member.status,
     }));
   } catch (error) {
     console.error("No se pudo cargar EyedCircle", error);
@@ -63,7 +75,7 @@ export default async function CirclePage() {
           <p>{loadError} Inténtalo nuevamente cuando EyedBot esté conectado.</p>
         </section>
       ) : (
-        <CircleClient initialCircles={circles} initialPosts={posts} viewerId={viewerId} />
+        <CircleClient initialCircles={circles} initialPosts={posts} directory={directory} viewerId={viewerId} />
       )}
     </>
   );

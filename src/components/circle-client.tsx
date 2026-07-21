@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Camera, Image as ImageIcon, LogOut, Plus, Send, Trash2, UserPlus, Users } from "lucide-react";
+import { MemberPicker, type PickerMember } from "@/components/member-picker";
 
 type Circle = {
   id: string;
@@ -25,28 +26,63 @@ type Post = {
   createdAt: string;
 };
 
+type CircleMember = {
+  userId: string;
+  role: string;
+  displayName: string;
+  joinedAt: string;
+};
+
 export function CircleClient({
   initialCircles,
   initialPosts,
+  directory,
   viewerId,
 }: {
   initialCircles: Circle[];
   initialPosts: Post[];
+  directory: PickerMember[];
   viewerId: string;
 }) {
   const [circles, setCircles] = useState(initialCircles);
   const [posts, setPosts] = useState(initialPosts);
   const [selectedCircle, setSelectedCircle] = useState(initialCircles[0]?.id || "");
+  const [circleMembers, setCircleMembers] = useState<CircleMember[]>([]);
+  const [selectedInvitee, setSelectedInvitee] = useState<PickerMember | null>(null);
   const [showCircleForm, setShowCircleForm] = useState(false);
   const [content, setContent] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const selected = circles.find((circle) => circle.id === selectedCircle);
-  const visiblePosts = useMemo(
-    () => posts.filter((post) => !selectedCircle || post.circleId === selectedCircle),
-    [posts, selectedCircle],
+
+  const directoryById = useMemo(
+    () => new Map(directory.map((member) => [member.id, member])),
+    [directory],
   );
+
+  const inviteCandidates = useMemo(() => {
+    const memberIds = new Set(circleMembers.map((member) => member.userId));
+    return directory.filter((member) => member.id !== viewerId && !memberIds.has(member.id));
+  }, [circleMembers, directory, viewerId]);
+
+  useEffect(() => {
+    if (!selectedCircle) {
+      setCircleMembers([]);
+      return;
+    }
+    let cancelled = false;
+    void fetch(`/api/circles/${selectedCircle}/members`, { cache: "no-store" })
+      .then(async (response) => {
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || "No se pudieron cargar los miembros");
+        if (!cancelled) setCircleMembers(body.members || []);
+      })
+      .catch((error) => {
+        if (!cancelled) setMessage(error instanceof Error ? error.message : "No se pudieron cargar los miembros");
+      });
+    return () => { cancelled = true; };
+  }, [selectedCircle]);
 
   async function refresh() {
     const response = await fetch("/api/circles", { cache: "no-store" });
@@ -106,21 +142,21 @@ export function CircleClient({
     }
   }
 
-  async function invite(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!selectedCircle) return setMessage("Esta acción no está disponible.");
-    const data = new FormData(event.currentTarget);
+  async function inviteSelected() {
+    if (!selectedCircle || !selectedInvitee) return setMessage("Selecciona a alguien de la lista.");
     setBusy(true);
+    setMessage("");
     try {
       const response = await fetch(`/api/circles/${selectedCircle}/members`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: data.get("userId") }),
+        body: JSON.stringify({ userId: selectedInvitee.id }),
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error);
-      event.currentTarget.reset();
-      setMessage("Miembro añadido.");
+      setCircleMembers(body.members || []);
+      setSelectedInvitee(null);
+      setMessage(`${selectedInvitee.displayName} se unió al círculo.`);
       await refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "No se pudo añadir");
@@ -129,21 +165,21 @@ export function CircleClient({
     }
   }
 
-  async function removeMember(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function removeMember(userId: string, displayName: string) {
     if (!selectedCircle) return;
-    const data = new FormData(event.currentTarget);
+    if (!window.confirm(`¿Quitar a ${displayName} del círculo?`)) return;
     setBusy(true);
+    setMessage("");
     try {
       const response = await fetch(`/api/circles/${selectedCircle}/members`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: data.get("userId") }),
+        body: JSON.stringify({ userId }),
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error);
-      event.currentTarget.reset();
-      setMessage("Miembro eliminado.");
+      setCircleMembers(body.members || []);
+      setMessage(`${displayName} fue eliminado del círculo.`);
       await refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "No se pudo eliminar el miembro");
@@ -202,6 +238,11 @@ export function CircleClient({
       setBusy(false);
     }
   }
+
+  const visiblePosts = useMemo(
+    () => posts.filter((post) => !selectedCircle || post.circleId === selectedCircle),
+    [posts, selectedCircle],
+  );
 
   return (
     <section className="circle-layout">
@@ -291,23 +332,57 @@ export function CircleClient({
             </div>
           ) : null}
         </article>
+
+        {selected && (
+          <article className="panel circle-members-panel">
+            <div className="panel-heading">
+              <div><span className="eyebrow"><Users size={14} /> Miembros</span><h2>{selected.name}</h2></div>
+              <strong>{circleMembers.length}</strong>
+            </div>
+            <div className="circle-member-list">
+              {circleMembers.map((member) => {
+                const profile = directoryById.get(member.userId);
+                return (
+                  <div className="circle-member-row" key={member.userId}>
+                    <span className={`avatar ${profile?.avatarUrl ? "" : "avatar-fallback"}`}>
+                      {profile?.avatarUrl ? <Image src={profile.avatarUrl} alt="" width={34} height={34} /> : null}
+                    </span>
+                    <span>
+                      <strong>{profile?.displayName || member.displayName}</strong>
+                      <small>{member.role === "owner" ? "Dueño" : "Miembro"}{profile ? ` · @${profile.username}` : ""}</small>
+                    </span>
+                    {selected.role === "owner" && member.role !== "owner" ? (
+                      <button
+                        className="ghost-button danger"
+                        disabled={busy}
+                        onClick={() => void removeMember(member.userId, profile?.displayName || member.displayName)}
+                      >
+                        Quitar
+                      </button>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          </article>
+        )}
+
         {selected?.role === "owner" && (
-          <>
-            <article className="panel">
-              <span className="eyebrow"><UserPlus size={14} /> Añadir miembro</span>
-              <form className="compact-form" onSubmit={invite}>
-                <input name="userId" placeholder="ID de Discord" pattern="\d{10,25}" required />
-                <button className="ghost-button" disabled={busy}>Invitar</button>
-              </form>
-            </article>
-            <article className="panel">
-              <span className="eyebrow"><Trash2 size={14} /> Quitar miembro</span>
-              <form className="compact-form" onSubmit={removeMember}>
-                <input name="userId" placeholder="ID de Discord" pattern="\d{10,25}" required />
-                <button className="ghost-button danger" disabled={busy}>Eliminar</button>
-              </form>
-            </article>
-          </>
+          <article className="panel">
+            <div className="panel-heading">
+              <div><span className="eyebrow"><UserPlus size={14} /> Añadir del servidor</span><h2>Invitar amigos</h2></div>
+            </div>
+            <MemberPicker
+              members={inviteCandidates}
+              selectedId={selectedInvitee?.id || null}
+              onSelect={setSelectedInvitee}
+              disabled={busy}
+              emptyLabel="Todos los miembros visibles ya están en el círculo"
+            />
+            <button className="secondary-button" disabled={busy || !selectedInvitee} onClick={() => void inviteSelected()}>
+              <UserPlus size={16} /> {selectedInvitee ? `Añadir a ${selectedInvitee.displayName}` : "Selecciona un miembro"}
+            </button>
+          </article>
         )}
       </aside>
     </section>

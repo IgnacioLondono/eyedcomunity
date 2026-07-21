@@ -210,6 +210,9 @@ const shopProductSchema = z.object({
   ownedQuantity: nonNegative,
   active: z.boolean(),
   sortOrder: nonNegative,
+  source: z.enum(["gacha", "community"]).optional().default("community"),
+  sourceId: z.string().nullable().optional().default(null),
+  hasCatalogImage: z.boolean().optional().default(false),
 });
 const shopCatalogSchema = z.object({
   products: z.array(shopProductSchema),
@@ -406,6 +409,13 @@ export function getCommunityMembers(viewerId: string) {
   ).then((result) => result.members);
 }
 
+export function getCommunityDirectory(viewerId: string) {
+  return eyedBotRequest(
+    "/api/community/members?directory=1",
+    { userId: viewerId, schema: z.object({ members: z.array(memberSummarySchema) }) },
+  ).then((result) => result.members);
+}
+
 export function getCommunityMember(viewerId: string, memberId: string) {
   return eyedBotRequest<CommunityMemberProfile>(`/api/community/member/${userPath(memberId)}`, {
     userId: viewerId,
@@ -543,12 +553,34 @@ export function joinCommunityParty(userId: string, id: string) {
   });
 }
 
+export function inviteCommunityParty(userId: string, id: string, targetUserId: string) {
+  return eyedBotRequest(`/api/community/parties/${z.string().uuid().parse(id)}/invite`, {
+    userId,
+    method: "POST",
+    body: { userId: snowflake.parse(targetUserId) },
+    schema: z.object({ party: partySchema, ...requestMetadata }),
+  });
+}
+
 export function leaveCommunityParty(userId: string, id: string) {
   return eyedBotRequest(`/api/community/parties/${z.string().uuid().parse(id)}/join`, {
     userId,
     method: "DELETE",
     schema: z.object({
       party: partySchema, left: z.boolean(), idempotent: z.boolean(), ...requestMetadata,
+    }),
+  });
+}
+
+export function deleteCommunityParty(userId: string, id: string) {
+  return eyedBotRequest(`/api/community/parties/${z.string().uuid().parse(id)}`, {
+    userId,
+    method: "DELETE",
+    schema: z.object({
+      deleted: z.literal(true),
+      partyId: z.string().uuid(),
+      party: partySchema,
+      ...requestMetadata,
     }),
   });
 }

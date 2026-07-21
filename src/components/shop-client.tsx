@@ -30,6 +30,14 @@ function labelFor(category: string) {
   return categoryLabels[category] || category.replace(/-/g, " ");
 }
 
+function productImage(product: CommunityShopProduct) {
+  if (product.imageUrl) return product.imageUrl;
+  if (product.source === "gacha" && product.hasCatalogImage && product.sourceId) {
+    return `/api/community/shop/images/${encodeURIComponent(product.sourceId)}`;
+  }
+  return null;
+}
+
 export function ShopClient({ initialCatalog }: { initialCatalog: CommunityShopCatalog }) {
   const [products, setProducts] = useState(initialCatalog.products);
   const [balance, setBalance] = useState(initialCatalog.balance);
@@ -142,12 +150,13 @@ export function ShopClient({ initialCatalog }: { initialCatalog: CommunityShopCa
               const soldOut = product.remainingStock === 0;
               const limited = product.perUserLimit !== null && product.purchasedQuantity >= product.perUserLimit;
               const unavailable = soldOut || limited || max < 1;
+              const imageSrc = productImage(product);
               return (
                 <article className="shop-product panel" key={product.id}>
                   <div className="shop-product-media">
-                    {product.imageUrl ? (
+                    {imageSrc ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={product.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                      <img src={imageSrc} alt="" loading="lazy" referrerPolicy="no-referrer" />
                     ) : <ProductIcon type={product.type} />}
                     <span>{typeLabels[product.type]}</span>
                   </div>
@@ -157,7 +166,8 @@ export function ShopClient({ initialCatalog }: { initialCatalog: CommunityShopCa
                     <div className="shop-product-meta">
                       <strong><Coins size={15} /> {product.priceCoins.toLocaleString("es")}</strong>
                       <span>{product.remainingStock === null ? "Stock ilimitado" : `${product.remainingStock} disponibles`}</span>
-                      {product.purchasedQuantity > 0 ? <span>Comprados: {product.purchasedQuantity}</span> : null}
+                      {product.ownedQuantity > 0 ? <span>En inventario: {product.ownedQuantity}</span> : null}
+                      {product.purchasedQuantity > 0 && product.source !== "gacha" ? <span>Comprados: {product.purchasedQuantity}</span> : null}
                     </div>
                     <div className="shop-buy-row">
                       {product.type !== "role" && max > 1 ? (
