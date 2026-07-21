@@ -8,7 +8,7 @@ const discordClientSecret = process.env.AUTH_DISCORD_SECRET?.trim();
 
 async function verifyWithEyedBot(userId: string) {
   const baseUrl = process.env.EYEDBOT_API_URL?.replace(/\/+$/, "");
-  const apiKey = process.env.COMMUNITY_API_KEY;
+  const apiKey = process.env.COMMUNITY_API_KEY || process.env.EYEDBOT_API_KEY;
   if (!baseUrl || !apiKey) return null;
 
   const response = await fetch(

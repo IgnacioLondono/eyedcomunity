@@ -23,7 +23,7 @@ export class EyedBotApiError extends Error {
 
 async function request<T>(path: string): Promise<T> {
   const baseUrl = process.env.EYEDBOT_API_URL?.replace(/\/+$/, "");
-  const apiKey = process.env.COMMUNITY_API_KEY;
+  const apiKey = process.env.COMMUNITY_API_KEY || process.env.EYEDBOT_API_KEY;
   if (!baseUrl || !apiKey) {
     throw new EyedBotApiError("La API comunitaria no está configurada", 503);
   }
@@ -109,6 +109,7 @@ function demoProfile(userId: string): CommunityProfile {
       pulls: 412,
       bestRarity: "SSR",
     },
+    activity: [],
   };
 }
 

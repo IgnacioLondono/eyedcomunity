@@ -20,6 +20,12 @@ export type CommunityProfile = {
     pulls: number;
     bestRarity: string | null;
   };
+  activity: Array<{
+    date: string;
+    messages: number;
+    voiceMinutes: number;
+    xpEarned: number;
+  }>;
 };
 
 export type CommunityServer = {

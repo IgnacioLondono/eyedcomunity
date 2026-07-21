@@ -1,35 +1,67 @@
+import Image from "next/image";
+import { redirect } from "next/navigation";
 import { Crown, Medal, MessageCircle, Mic2, Sparkles, Trophy } from "lucide-react";
+import { auth } from "@/auth";
 import { PageHeader } from "@/components/page-header";
+import { DEMO_USER_ID, IS_DEMO_MODE } from "@/lib/demo";
+import { EyedBotApiError, getCommunityServer } from "@/lib/eyedbot-api";
 
-const members = [
-  ["Luna", "198.500", "51", "28.410", "212 h"],
-  ["Kai", "179.070", "48", "25.905", "188 h"],
-  ["Nova", "159.640", "42", "18.729", "139 h"],
-  ["Mika", "140.210", "39", "21.084", "122 h"],
-  ["Dante", "120.780", "36", "16.482", "164 h"],
-  ["Ari", "101.350", "33", "14.209", "98 h"],
-  ["Nox", "81.920", "29", "11.864", "85 h"],
-];
+export default async function RankingPage() {
+  const session = await auth();
+  if (!session?.user?.id && !IS_DEMO_MODE) redirect("/");
+  const userId = session?.user?.id || DEMO_USER_ID;
+  let data;
+  try {
+    data = await getCommunityServer(userId);
+  } catch (error) {
+    if (error instanceof EyedBotApiError && error.status === 403) redirect("/access-denied");
+    return <Unavailable />;
+  }
 
-export default function RankingPage() {
+  const members = data.leaderboard;
+  const podium = [members[1], members[0], members[2]];
+  const podiumClasses = ["podium-second", "podium-first", "podium-third"];
+  const podiumIcons = [Medal, Crown, Trophy];
+  const podiumRanks = [2, 1, 3];
+
   return (
     <>
-      <PageHeader eyebrow="Comunidad" title="Ranking" description="Los miembros que están haciendo historia en EyedComun." action={<button className="ghost-button">Este mes</button>} />
+      <PageHeader eyebrow="Comunidad" title="Ranking" description="Los miembros que están haciendo historia en EyedComun." action={<span className="ghost-button">Clasificación actual</span>} />
       <section className="podium">
-        <article className="podium-second"><Medal /><span>#2</span><div className="avatar avatar-fallback" /><h3>Kai</h3><strong>179K XP</strong></article>
-        <article className="podium-first"><Crown /><span>#1</span><div className="avatar avatar-fallback" /><h3>Luna</h3><strong>198K XP</strong></article>
-        <article className="podium-third"><Trophy /><span>#3</span><div className="avatar avatar-fallback" /><h3>Nova</h3><strong>159K XP</strong></article>
+        {podium.map((member, index) => {
+          if (!member) return <article className={podiumClasses[index]} key={podiumRanks[index]} />;
+          const Icon = podiumIcons[index];
+          return (
+            <article className={podiumClasses[index]} key={member.userId}>
+              <Icon /><span>#{podiumRanks[index]}</span>
+              {member.avatarUrl ? <Image src={member.avatarUrl} alt="" width={58} height={58} className="avatar" /> : <div className="avatar avatar-fallback" />}
+              <h3>{member.displayName}</h3><strong>{formatCompact(member.xp)} XP</strong>
+            </article>
+          );
+        })}
       </section>
       <section className="panel ranking-table">
         <div className="ranking-row ranking-head"><span>Posición</span><span>Miembro</span><span><Sparkles /> XP</span><span>Nivel</span><span><MessageCircle /> Mensajes</span><span><Mic2 /> Voz</span></div>
-        {members.map(([name, xp, level, messages, voice], index) => (
-          <div className={`ranking-row ${name === "Nova" ? "is-you" : ""}`} key={name}>
+        {members.map((member, index) => (
+          <div className={`ranking-row ${member.userId === userId ? "is-you" : ""}`} key={member.userId}>
             <strong>#{index + 1}</strong>
-            <span className="ranking-member"><i className="avatar avatar-fallback" />{name}{name === "Nova" && <small>Tú</small>}</span>
-            <b>{xp}</b><span>{level}</span><span>{messages}</span><span>{voice}</span>
+            <span className="ranking-member">
+              {member.avatarUrl ? <Image src={member.avatarUrl} alt="" width={34} height={34} className="avatar" /> : <i className="avatar avatar-fallback" />}
+              {member.displayName}{member.userId === userId && <small>Tú</small>}
+            </span>
+            <b>{member.xp.toLocaleString("es")}</b><span>{member.level}</span>
+            <span>{member.messages.toLocaleString("es")}</span><span>{Math.round(member.voiceMinutes / 60)} h</span>
           </div>
         ))}
       </section>
     </>
   );
+}
+
+function formatCompact(value: number) {
+  return new Intl.NumberFormat("es", { notation: "compact", maximumFractionDigits: 1 }).format(value);
+}
+
+function Unavailable() {
+  return <section className="empty-card"><h1>El ranking no está disponible</h1><p>No pudimos obtener la clasificación de EyedBot.</p></section>;
 }

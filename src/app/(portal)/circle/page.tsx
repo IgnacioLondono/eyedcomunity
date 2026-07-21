@@ -5,8 +5,11 @@ import { requireCommunityViewer } from "@/lib/community-auth";
 import { listCirclePosts, listCircles } from "@/lib/circle-store";
 import { DEMO_USER_ID, IS_DEMO_MODE } from "@/lib/demo";
 
+export const dynamic = "force-dynamic";
+
 export default async function CirclePage() {
   let viewerId = DEMO_USER_ID;
+  let loadError: string | null = null;
   let circles: Array<{
     id: string; name: string; description: string | null; ownerId: string; role: string; memberCount: number;
   }> = demoCircles;
@@ -16,31 +19,36 @@ export default async function CirclePage() {
   }> = demoPosts;
 
   if (!IS_DEMO_MODE) {
-    const viewer = await requireCommunityViewer();
-    viewerId = viewer.userId;
-    const [storedCircles, storedPosts] = await Promise.all([
-      listCircles(viewerId),
-      listCirclePosts(viewerId),
-    ]);
-    circles = storedCircles.map((circle) => ({
-      id: circle.id,
-      name: circle.name,
-      description: circle.description,
-      ownerId: circle.ownerId,
-      role: circle.role,
-      memberCount: circle.memberCount,
-    }));
-    posts = storedPosts.map((post) => ({
-      id: post.id,
-      circleId: post.circleId,
-      circleName: post.circleName,
-      authorId: post.authorId,
-      authorName: post.authorName,
-      authorAvatarId: post.authorAvatarId,
-      content: post.content,
-      mediaId: post.mediaId,
-      createdAt: new Date(post.createdAt).toISOString(),
-    }));
+    try {
+      const viewer = await requireCommunityViewer();
+      viewerId = viewer.userId;
+      const [storedCircles, storedPosts] = await Promise.all([
+        listCircles(viewerId),
+        listCirclePosts(viewerId),
+      ]);
+      circles = storedCircles.map((circle) => ({
+        id: circle.id,
+        name: circle.name,
+        description: circle.description,
+        ownerId: circle.ownerId,
+        role: circle.role,
+        memberCount: circle.memberCount,
+      }));
+      posts = storedPosts.map((post) => ({
+        id: post.id,
+        circleId: post.circleId,
+        circleName: post.circleName,
+        authorId: post.authorId,
+        authorName: post.authorName,
+        authorAvatarId: post.authorAvatarId,
+        content: post.content,
+        mediaId: post.mediaId,
+        createdAt: new Date(post.createdAt).toISOString(),
+      }));
+    } catch (error) {
+      console.error("No se pudo cargar EyedCircle", error);
+      loadError = "No pudimos verificar tu acceso o conectar con la base de datos.";
+    }
   }
 
   return (
@@ -51,7 +59,14 @@ export default async function CirclePage() {
         description="Un espacio privado para compartir momentos con tus amigos más cercanos."
         action={<span className="secondary-button"><Plus size={17} /> Momentos privados</span>}
       />
-      <CircleClient initialCircles={circles} initialPosts={posts} viewerId={viewerId} demo={IS_DEMO_MODE} />
+      {loadError ? (
+        <section className="empty-card">
+          <h2>EyedCircle no está disponible</h2>
+          <p>{loadError} Inténtalo nuevamente cuando EyedBot esté conectado.</p>
+        </section>
+      ) : (
+        <CircleClient initialCircles={circles} initialPosts={posts} viewerId={viewerId} demo={IS_DEMO_MODE} />
+      )}
     </>
   );
 }

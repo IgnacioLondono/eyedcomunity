@@ -41,6 +41,7 @@ services:
       DISCORD_GUILD_ID: "${DISCORD_GUILD_ID}"
       EYEDBOT_API_URL: "${EYEDBOT_API_URL}"
       COMMUNITY_API_KEY: "${COMMUNITY_API_KEY}"
+      EYEDBOT_API_KEY: "${EYEDBOT_API_KEY}"
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_NAME: eyedcomun

@@ -53,7 +53,7 @@ export async function assertCurrentMember(userId: string) {
   }
 
   const baseUrl = process.env.EYEDBOT_API_URL?.replace(/\/+$/, "");
-  const apiKey = process.env.COMMUNITY_API_KEY;
+  const apiKey = process.env.COMMUNITY_API_KEY || process.env.EYEDBOT_API_KEY;
   if (!baseUrl || !apiKey) throw new ApiAccessError("EyedBot no está configurado", 503);
 
   const response = await fetch(
