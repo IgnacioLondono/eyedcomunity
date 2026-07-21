@@ -3,6 +3,8 @@ import Discord from "next-auth/providers/discord";
 import { IS_DEMO_MODE } from "@/lib/demo";
 
 const guildId = process.env.DISCORD_GUILD_ID?.trim();
+const discordClientId = process.env.AUTH_DISCORD_ID?.trim();
+const discordClientSecret = process.env.AUTH_DISCORD_SECRET?.trim();
 
 async function verifyWithEyedBot(userId: string) {
   const baseUrl = process.env.EYEDBOT_API_URL?.replace(/\/+$/, "");
@@ -28,6 +30,8 @@ async function verifyWithEyedBot(userId: string) {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Discord({
+      clientId: discordClientId,
+      clientSecret: discordClientSecret,
       authorization: { params: { scope: "identify guilds" } },
     }),
   ],
