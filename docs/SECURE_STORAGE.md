@@ -6,20 +6,20 @@ La raíz recomendada es:
 
 `/srv/dev-disk-by-uuid-94f2a4b3-1a12-41f9-b0ee-e78aa049c7ea/SSD512/docker/eyedcomun`
 
-Crea `mysql`, `uploads`, `app/backups` y `secrets`. Los directorios de la aplicación deben pertenecer a UID/GID `1001:1001` y usar permisos `0750`. Antes de cambiar el propietario de `mysql`, comprueba el UID usado por la imagen `mysql:8.4`; no uses `chmod 777`.
+Crea `mysql`, `uploads` y `app/backups`. Los directorios de la aplicación deben pertenecer a UID/GID `1001:1001` y usar permisos `0750`. Antes de cambiar el propietario de `mysql`, comprueba el UID usado por la imagen `mysql:8.4`; no uses `chmod 777`.
 
-Dentro de `secrets` crea archivos sin salto de línea y con permisos `0600`:
+En las variables del Stack de Portainer configura:
 
-- `auth_secret`: `openssl rand -base64 48`
-- `discord_secret`: secreto OAuth de Discord
-- `community_api_key`: la misma clave configurada en EyedBot
-- `mysql_password`: contraseña larga para el usuario de la aplicación
-- `mysql_root_password`: contraseña root distinta
-- `media_encryption_key`: `openssl rand -base64 32`
+- `AUTH_SECRET`: salida de `openssl rand -base64 48`
+- `AUTH_DISCORD_SECRET`: secreto OAuth de Discord
+- `COMMUNITY_API_KEY`: la misma clave configurada en EyedBot
+- `MYSQL_PASSWORD`: contraseña larga para el usuario de la aplicación
+- `MYSQL_ROOT_PASSWORD`: contraseña root distinta
+- `MEDIA_ENCRYPTION_KEY`: salida de `openssl rand -base64 32`
 
-La clave `media_encryption_key` es irreemplazable: sin ella no se pueden recuperar las imágenes. Guárdala también fuera del SSD y nunca la añadas a Git.
+La clave `MEDIA_ENCRYPTION_KEY` es irreemplazable: sin ella no se pueden recuperar las imágenes. Guárdala también fuera del SSD y nunca la añadas a Git.
 
-En el Stack de Portainer configura `AUTH_DISCORD_ID`, `AUTH_URL`, `DISCORD_GUILD_ID`, `EYEDBOT_API_URL`, `EYEDCOMUN_DATA_ROOT` y, si hace falta, `EYEDCOMUN_PORT`. El puerto 3306 no se publica. Al arrancar, EyedComun espera a MySQL, carga los secretos mediante `_FILE`, ejecuta las migraciones y falla si alguna no puede aplicarse.
+Configura además `AUTH_DISCORD_ID`, `AUTH_URL`, `DISCORD_GUILD_ID`, `EYEDBOT_API_URL`, `EYEDCOMUN_DATA_ROOT` y, si hace falta, `EYEDCOMUN_PORT`. El puerto 3306 no se publica. Al arrancar, EyedComun espera a MySQL, ejecuta las migraciones y falla si alguna no puede aplicarse.
 
 ## Operación
 

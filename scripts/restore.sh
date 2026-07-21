@@ -11,17 +11,21 @@ DATA_ROOT="${EYEDCOMUN_DATA_ROOT:-/srv/dev-disk-by-uuid-94f2a4b3-1a12-41f9-b0ee-
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 
 (cd "$BACKUP" && sha256sum -c SHA256SUMS)
+CURRENT_MEDIA_KEY="$(docker compose exec -T eyedcomun sh -c 'printf %s "$MEDIA_ENCRYPTION_KEY"' 2>/dev/null || true)"
+BACKUP_MEDIA_KEY="$(cat "$BACKUP/media_encryption_key")"
+if [ -z "$CURRENT_MEDIA_KEY" ] || [ "$CURRENT_MEDIA_KEY" != "$BACKUP_MEDIA_KEY" ]; then
+  echo "MEDIA_ENCRYPTION_KEY de Portainer no coincide con la copia; corrígela antes de restaurar." >&2
+  exit 1
+fi
 docker compose stop eyedcomun
 
 if [ -d "$DATA_ROOT/uploads" ]; then
   mv "$DATA_ROOT/uploads" "$DATA_ROOT/uploads.before-$STAMP"
 fi
 tar -C "$DATA_ROOT" -xzf "$BACKUP/uploads.tar.gz"
-cp "$BACKUP/media_encryption_key" "$DATA_ROOT/secrets/media_encryption_key"
-chmod 0600 "$DATA_ROOT/secrets/media_encryption_key"
 
 docker compose exec -T mysql sh -c \
-  'MYSQL_PWD="$(cat /run/secrets/mysql_root_password)" mysql -uroot eyedcomun' \
+  'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot eyedcomun' \
   < "$BACKUP/mysql.sql"
 
 docker compose start eyedcomun

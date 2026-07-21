@@ -7,17 +7,14 @@ services:
     environment:
       MYSQL_DATABASE: eyedcomun
       MYSQL_USER: eyedcomun
-      MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
-      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
     volumes:
       - "${EYEDCOMUN_DATA_ROOT:-/srv/dev-disk-by-uuid-94f2a4b3-1a12-41f9-b0ee-e78aa049c7ea/SSD512/docker/eyedcomun}/mysql:/var/lib/mysql"
-    secrets:
-      - mysql_password
-      - mysql_root_password
     networks:
       - backend
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root --password=\"$$(cat /run/secrets/mysql_root_password)\" --silent"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root --password=\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -36,30 +33,24 @@ services:
       - "${EYEDCOMUN_PORT:-3001}:3000"
     environment:
       NODE_ENV: production
-      AUTH_SECRET_FILE: /run/secrets/auth_secret
+      AUTH_SECRET: "${AUTH_SECRET}"
       AUTH_DISCORD_ID: "${AUTH_DISCORD_ID}"
-      AUTH_DISCORD_SECRET_FILE: /run/secrets/discord_secret
+      AUTH_DISCORD_SECRET: "${AUTH_DISCORD_SECRET}"
       AUTH_URL: "${AUTH_URL}"
       AUTH_TRUST_HOST: "true"
       DISCORD_GUILD_ID: "${DISCORD_GUILD_ID}"
       EYEDBOT_API_URL: "${EYEDBOT_API_URL}"
-      COMMUNITY_API_KEY_FILE: /run/secrets/community_api_key
+      COMMUNITY_API_KEY: "${COMMUNITY_API_KEY}"
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_NAME: eyedcomun
       DB_USER: eyedcomun
-      DB_PASSWORD_FILE: /run/secrets/mysql_password
-      MEDIA_ENCRYPTION_KEY_FILE: /run/secrets/media_encryption_key
+      DB_PASSWORD: "${MYSQL_PASSWORD}"
+      MEDIA_ENCRYPTION_KEY: "${MEDIA_ENCRYPTION_KEY}"
       MEDIA_ENCRYPTION_KEY_VERSION: "1"
       MEDIA_STORAGE_PATH: /app/uploads
     volumes:
       - "${EYEDCOMUN_DATA_ROOT:-/srv/dev-disk-by-uuid-94f2a4b3-1a12-41f9-b0ee-e78aa049c7ea/SSD512/docker/eyedcomun}/uploads:/app/uploads"
-    secrets:
-      - auth_secret
-      - discord_secret
-      - community_api_key
-      - mysql_password
-      - media_encryption_key
     networks:
       - backend
     healthcheck:
@@ -72,17 +63,3 @@ services:
 networks:
   backend:
     driver: bridge
-
-secrets:
-  auth_secret:
-    file: "${EYEDCOMUN_DATA_ROOT:-/srv/dev-disk-by-uuid-94f2a4b3-1a12-41f9-b0ee-e78aa049c7ea/SSD512/docker/eyedcomun}/secrets/auth_secret"
-  discord_secret:
-    file: "${EYEDCOMUN_DATA_ROOT:-/srv/dev-disk-by-uuid-94f2a4b3-1a12-41f9-b0ee-e78aa049c7ea/SSD512/docker/eyedcomun}/secrets/discord_secret"
-  community_api_key:
-    file: "${EYEDCOMUN_DATA_ROOT:-/srv/dev-disk-by-uuid-94f2a4b3-1a12-41f9-b0ee-e78aa049c7ea/SSD512/docker/eyedcomun}/secrets/community_api_key"
-  mysql_password:
-    file: "${EYEDCOMUN_DATA_ROOT:-/srv/dev-disk-by-uuid-94f2a4b3-1a12-41f9-b0ee-e78aa049c7ea/SSD512/docker/eyedcomun}/secrets/mysql_password"
-  mysql_root_password:
-    file: "${EYEDCOMUN_DATA_ROOT:-/srv/dev-disk-by-uuid-94f2a4b3-1a12-41f9-b0ee-e78aa049c7ea/SSD512/docker/eyedcomun}/secrets/mysql_root_password"
-  media_encryption_key:
-    file: "${EYEDCOMUN_DATA_ROOT:-/srv/dev-disk-by-uuid-94f2a4b3-1a12-41f9-b0ee-e78aa049c7ea/SSD512/docker/eyedcomun}/secrets/media_encryption_key"
