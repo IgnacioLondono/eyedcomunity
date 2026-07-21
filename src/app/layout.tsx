@@ -11,6 +11,10 @@ export const metadata: Metadata = {
     template: "%s · EyedComun",
   },
   description: "Tus estadísticas, momentos y comunidad de Eyed en un solo lugar.",
+  icons: {
+    icon: "/eyedcomun-logo.png",
+    apple: "/eyedcomun-logo.png",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

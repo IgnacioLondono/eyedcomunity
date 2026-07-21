@@ -1,4 +1,4 @@
-import { Bot, Check, Circle, Clock3, Headphones, Image, Music2, Radio, Vote } from "lucide-react";
+import { Bot, Check, Headphones, Image, Music2, Radio, Vote } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 
 const ideas = [
@@ -15,9 +15,9 @@ export default function RoadmapPage() {
       <section className="roadmap-steps">
         <div className="done"><Check /><span>Disponible</span><strong>Estadísticas y Wrapped</strong></div>
         <i />
-        <div className="current"><Clock3 /><span>En desarrollo</span><strong>EyedCircle y quedadas</strong></div>
+        <div className="done"><Check /><span>Disponible</span><strong>EyedCircle y quedadas</strong></div>
         <i />
-        <div><Circle /><span>Después</span><strong>EyedParty y retos</strong></div>
+        <div className="done"><Check /><span>Disponible</span><strong>EyedParty y retos</strong></div>
       </section>
       <section className="idea-grid">
         {ideas.map(({ icon: Icon, title, detail, votes, status }) => (

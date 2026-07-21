@@ -1,0 +1,25 @@
+services:
+  eyedcomun:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: eyedcomun
+    restart: unless-stopped
+    ports:
+      - "${EYEDCOMUN_PORT:-3001}:3000"
+    environment:
+      NODE_ENV: production
+      AUTH_SECRET: "${AUTH_SECRET}"
+      AUTH_DISCORD_ID: "${AUTH_DISCORD_ID}"
+      AUTH_DISCORD_SECRET: "${AUTH_DISCORD_SECRET}"
+      AUTH_URL: "${AUTH_URL}"
+      AUTH_TRUST_HOST: "true"
+      DISCORD_GUILD_ID: "${DISCORD_GUILD_ID}"
+      EYEDBOT_API_URL: "${EYEDBOT_API_URL}"
+      COMMUNITY_API_KEY: "${COMMUNITY_API_KEY}"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s

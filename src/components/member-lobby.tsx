@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import { Clock3, MessageCircle, Search, SlidersHorizontal } from "lucide-react";
 import type { CommunityMemberSummary } from "@/lib/types";
@@ -33,8 +34,9 @@ export function MemberLobby({ members }: { members: CommunityMemberSummary[] }) 
       <section className="member-grid">
         {visible.map((member) => (
           <Link href={`/members/${member.id}`} className="member-card panel" key={member.id}>
-            <div className="member-cover" />
-            <div className="member-avatar avatar avatar-fallback">
+            <div className="member-cover" style={coverStyle(member.bannerUrl, member.accentColor)} />
+            <div className={`member-avatar avatar ${member.avatarUrl ? "" : "avatar-fallback"}`}>
+              {member.avatarUrl && <Image src={member.avatarUrl} alt="" width={64} height={64} />}
               <i className={`status-dot status-${member.status}`} />
             </div>
             <span className="member-rank">#{member.rank || "—"}</span>
@@ -63,4 +65,16 @@ export function MemberLobby({ members }: { members: CommunityMemberSummary[] }) 
 
 function formatCompact(value: number) {
   return new Intl.NumberFormat("es", { notation: "compact", maximumFractionDigits: 1 }).format(value);
+}
+
+function coverStyle(bannerUrl: string | null, accentColor: string | null) {
+  if (bannerUrl) {
+    return {
+      backgroundImage: `linear-gradient(180deg, transparent, rgba(10, 9, 14, .28)), url("${bannerUrl}")`,
+    };
+  }
+  if (accentColor) {
+    return { background: `linear-gradient(135deg, ${accentColor}, #111018)` };
+  }
+  return undefined;
 }

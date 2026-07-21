@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { ArrowRight, BarChart3, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { auth, signIn } from "@/auth";
@@ -12,7 +13,7 @@ export default async function Home() {
     <main className="landing">
       <header className="landing-nav">
         <Link href="/" className="brand">
-          <span className="brand-mark">E</span>
+          <span className="brand-mark"><Image src="/eyedcomun-logo.png" alt="" width={34} height={34} priority /></span>
           <span>Eyed<span className="muted">Comun</span></span>
         </Link>
         <span className="member-pill"><ShieldCheck size={15} /> Solo comunidad</span>

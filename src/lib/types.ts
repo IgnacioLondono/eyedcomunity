@@ -82,6 +82,8 @@ export type CommunityMemberSummary = {
   username: string;
   displayName: string;
   avatarUrl: string | null;
+  bannerUrl: string | null;
+  accentColor: string | null;
   status: "online" | "idle" | "dnd" | "offline";
   activity: string | null;
   level: number;

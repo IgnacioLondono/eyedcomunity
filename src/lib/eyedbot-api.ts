@@ -191,6 +191,8 @@ function demoMembers(): CommunityMemberSummary[] {
     username: displayName.toLowerCase(),
     displayName,
     avatarUrl: null,
+    bannerUrl: null,
+    accentColor: ["#7957d9", "#3d92a0", "#b14f79", "#8062bd"][index % 4],
     status: statuses[index],
     activity: activities[index],
     level: Math.max(8, 51 - index * 3),

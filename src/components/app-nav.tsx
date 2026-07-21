@@ -15,7 +15,7 @@ export function AppNav({ user, demo = false }: Props) {
   return (
     <header className="app-nav">
       <Link href="/dashboard" className="brand">
-        <span className="brand-mark">E</span>
+        <span className="brand-mark"><Image src="/eyedcomun-logo.png" alt="" width={34} height={34} priority /></span>
         <span>Eyed<span className="muted">Comun</span></span>
       </Link>
       <nav>

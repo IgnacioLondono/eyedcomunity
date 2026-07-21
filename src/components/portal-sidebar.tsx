@@ -18,7 +18,7 @@ export function PortalSidebar({ user, demo = false }: Props) {
     <aside className="portal-sidebar">
       <div className="sidebar-header">
         <Link href="/dashboard" className="brand sidebar-brand">
-          <span className="brand-mark">E</span>
+          <span className="brand-mark"><Image src="/eyedcomun-logo.png" alt="" width={34} height={34} priority /></span>
           <span>Eyed<span className="muted">Comun</span></span>
         </Link>
         <SidebarToggle />

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Clock3, Coins, MessageCircle, Orbit, Sparkles, Trophy, UserPlus } from "lucide-react";
 import { auth } from "@/auth";
@@ -27,9 +28,12 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
     <>
         <Link href="/lobby" className="back-link"><ArrowLeft size={16} /> Volver al lobby</Link>
         <section className="public-profile-hero">
-          <div className="public-cover" />
+          <div className="public-cover" style={coverStyle(user.bannerUrl, user.accentColor)} />
           <div className="public-profile-main">
-            <div className="public-avatar avatar avatar-fallback"><i className={`status-dot status-${user.status}`} /></div>
+            <div className={`public-avatar avatar ${user.avatarUrl ? "" : "avatar-fallback"}`}>
+              {user.avatarUrl && <Image src={user.avatarUrl} alt="" width={112} height={112} priority />}
+              <i className={`status-dot status-${user.status}`} />
+            </div>
             <div><span className="eyebrow">Perfil de la comunidad</span><h1>{user.displayName}</h1><p>@{user.username} · {user.activity || "Sin actividad"}</p></div>
             <button className="secondary-button"><UserPlus size={17} /> Añadir al círculo</button>
           </div>
@@ -63,4 +67,16 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
         </section>
     </>
   );
+}
+
+function coverStyle(bannerUrl: string | null, accentColor: string | null) {
+  if (bannerUrl) {
+    return {
+      backgroundImage: `linear-gradient(180deg, transparent, rgba(10, 9, 14, .35)), url("${bannerUrl}")`,
+    };
+  }
+  if (accentColor) {
+    return { background: `linear-gradient(135deg, ${accentColor}, #111018)` };
+  }
+  return undefined;
 }
