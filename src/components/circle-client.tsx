@@ -188,16 +188,18 @@ export function CircleClient({
       </div>
 
       <aside className="circle-aside">
-        <article className="panel">
+        <article className="panel" id="circle-manager">
           <div className="panel-heading">
             <div><span className="eyebrow">Tus círculos</span><h2>Grupos privados</h2></div>
             <button onClick={() => setShowCircleForm((value) => !value)} aria-label="Crear círculo"><Plus size={18} /></button>
           </div>
-          {showCircleForm && (
-            <form className="compact-form" onSubmit={createCircle}>
+          {(showCircleForm || circles.length === 0) && (
+            <form className="compact-form" id="create-circle" onSubmit={createCircle}>
               <input name="name" placeholder="Nombre" minLength={2} maxLength={80} required />
               <input name="description" placeholder="Descripción opcional" maxLength={240} />
-              <button className="secondary-button" disabled={busy}>Crear</button>
+              <button className="secondary-button" disabled={busy}>
+                <Plus size={16} /> {busy ? "Creando..." : circles.length === 0 ? "Crear primer círculo" : "Crear círculo"}
+              </button>
             </form>
           )}
           <div className="circle-list">

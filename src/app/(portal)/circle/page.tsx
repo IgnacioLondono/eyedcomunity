@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Plus } from "lucide-react";
 import { CircleClient } from "@/components/circle-client";
 import { PageHeader } from "@/components/page-header";
@@ -54,7 +55,7 @@ export default async function CirclePage() {
         eyebrow="EyedCircle"
         title="Tu círculo"
         description="Un espacio privado para compartir momentos con tus amigos más cercanos."
-        action={<span className="secondary-button"><Plus size={17} /> Momentos privados</span>}
+        action={<Link className="secondary-button" href="#circle-manager"><Plus size={17} /> Crear círculo</Link>}
       />
       {loadError ? (
         <section className="empty-card">

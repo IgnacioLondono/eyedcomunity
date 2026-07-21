@@ -162,6 +162,13 @@ const wrappedSchema = z.object({
     })),
     rank: z.number().int().positive().nullable(),
   }),
+  lifetime: z.object({
+    messages: nonNegative,
+    voiceMinutes: nonNegative,
+    xp: nonNegative,
+    level: nonNegative,
+    updatedAt: nullableIso,
+  }),
   highlights: z.array(z.string()),
   ...requestMetadata,
 });

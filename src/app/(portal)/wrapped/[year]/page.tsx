@@ -12,7 +12,7 @@ export default async function WrappedPage({ params }: { params: Promise<{ year: 
   const userId = session.user.id;
 
   const { year: rawYear } = await params;
-  const year = Number.parseInt(rawYear, 10);
+  const year = /^\d{4}$/.test(rawYear) ? Number(rawYear) : Number.NaN;
   if (!Number.isInteger(year) || year < 2020 || year > new Date().getUTCFullYear()) notFound();
 
   let wrapped;
@@ -24,6 +24,7 @@ export default async function WrappedPage({ params }: { params: Promise<{ year: 
   }
 
   const voiceHours = Math.round((wrapped.stats.voiceMinutes / 60) * 10) / 10;
+  const lifetimeVoiceHours = Math.round((wrapped.lifetime.voiceMinutes / 60) * 10) / 10;
   const messagesPerDay = wrapped.stats.activeDays > 0
     ? Math.round(wrapped.stats.messages / wrapped.stats.activeDays)
     : 0;
@@ -65,6 +66,18 @@ export default async function WrappedPage({ params }: { params: Promise<{ year: 
           <div><Clock3 /><strong>{voiceHours}</strong><span>horas en voz</span></div>
           <div><Flame /><strong>{wrapped.stats.activeDays}</strong><span>días activo</span></div>
           <div><Trophy /><strong>#{wrapped.stats.rank || "—"}</strong><span>del servidor</span></div>
+        </div>
+      </section>
+
+      <section className="wrapped-opening wrapped-lifetime">
+        <span className="eyebrow">Tu historia completa conocida</span>
+        <h2>Todo lo acumulado.<br />Sin inventar fechas.</h2>
+        <p>Estos son tus totales históricos guardados por EyedBot. Se muestran aparte porque los registros anteriores no indican en qué año ocurrió cada actividad.</p>
+        <div className="wrapped-glance">
+          <div><MessageCircle /><strong>{wrapped.lifetime.messages.toLocaleString("es")}</strong><span>mensajes históricos</span></div>
+          <div><Clock3 /><strong>{lifetimeVoiceHours}</strong><span>horas históricas en voz</span></div>
+          <div><Zap /><strong>{wrapped.lifetime.xp.toLocaleString("es")}</strong><span>XP acumulada</span></div>
+          <div><Star /><strong>{wrapped.lifetime.level}</strong><span>nivel actual</span></div>
         </div>
       </section>
 

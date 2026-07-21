@@ -241,6 +241,13 @@ export type CommunityWrapped = {
     }>;
     rank: number | null;
   };
+  lifetime: {
+    messages: number;
+    voiceMinutes: number;
+    xp: number;
+    level: number;
+    updatedAt: string | null;
+  };
   highlights: string[];
 };
 
