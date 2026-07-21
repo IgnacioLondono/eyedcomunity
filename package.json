@@ -1,0 +1,38 @@
+{
+  "name": "eyedcomun",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Portal comunitario de Eyed",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "eyed",
+    "discord",
+    "community"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "lucide-react": "^1.25.0",
+    "next": "^16.2.10",
+    "next-auth": "^5.0.0-beta.32",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.1.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.2.10",
+    "postcss": "^8.5.20",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3"
+  }
+}
