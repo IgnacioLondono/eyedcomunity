@@ -3,9 +3,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Clock3, Coins, Crown, MessageCircle, Sparkles, Trophy } from "lucide-react";
 import { auth } from "@/auth";
+import { ProfileMediaEditor } from "@/components/profile-media-editor";
 import { StatCard } from "@/components/stat-card";
 import { EyedBotApiError, getCommunityProfile } from "@/lib/eyedbot-api";
 import { DEMO_USER_ID, IS_DEMO_MODE } from "@/lib/demo";
+import { getProfileMedia, getQuota } from "@/lib/media/service";
 
 const compact = new Intl.NumberFormat("es", { notation: "compact", maximumFractionDigits: 1 });
 
@@ -22,19 +24,33 @@ export default async function Dashboard() {
     return <Unavailable />;
   }
 
+  let customMedia = { avatarUrl: null as string | null, bannerUrl: null as string | null };
+  let quota = { usedBytes: 0, quotaBytes: 104_857_600 };
+  if (!IS_DEMO_MODE) {
+    try {
+      [customMedia, quota] = await Promise.all([getProfileMedia(userId), getQuota(userId)]);
+    } catch (error) {
+      console.error("No se pudo cargar el perfil personalizado", error);
+    }
+  }
+
   const voiceHours = Math.round((profile.stats.voiceMinutes / 60) * 10) / 10;
+  const avatarUrl = customMedia.avatarUrl || profile.user.avatarUrl;
 
   return (
     <>
-      <section className="profile-hero">
+      <section
+        className="profile-hero"
+        style={customMedia.bannerUrl ? { backgroundImage: `linear-gradient(110deg, rgba(14,12,22,.92), rgba(14,12,22,.45)), url("${customMedia.bannerUrl}")` } : undefined}
+      >
         <div className="profile-copy">
           <span className="eyebrow">Tu espacio personal</span>
           <h1>Hola, {profile.user.displayName}.</h1>
           <p>Este es el impacto que has dejado en EyedComun.</p>
         </div>
         <div className="profile-identity">
-          {profile.user.avatarUrl ? (
-            <Image src={profile.user.avatarUrl} alt="" width={76} height={76} className="avatar avatar-large" />
+          {avatarUrl ? (
+            <Image unoptimized={Boolean(customMedia.avatarUrl)} src={avatarUrl} alt="" width={76} height={76} className="avatar avatar-large" />
           ) : <span className="avatar avatar-large avatar-fallback" />}
           <div><strong>Nivel {profile.stats.level}</strong><span>#{profile.stats.rank || "—"} del servidor</span></div>
         </div>
@@ -46,6 +62,13 @@ export default async function Dashboard() {
         <StatCard icon={Trophy} label="Experiencia" value={compact.format(profile.stats.xp)} detail={`Nivel ${profile.stats.level}`} accent="amber" />
         <StatCard icon={Coins} label="EyedCoins" value={compact.format(profile.gacha.coins)} detail={`${profile.gacha.collectionSize} objetos`} accent="rose" />
       </section>
+
+      <ProfileMediaEditor
+        initialAvatarUrl={customMedia.avatarUrl}
+        initialBannerUrl={customMedia.bannerUrl}
+        initialQuota={quota}
+        demo={IS_DEMO_MODE}
+      />
 
       <section className="split-grid">
         <article className="panel spotlight-panel">

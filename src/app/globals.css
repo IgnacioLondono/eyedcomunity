@@ -277,6 +277,31 @@ button { font: inherit; }
 .circle-violet { color: var(--violet); background: rgba(157,108,255,.12); }.circle-cyan { color: var(--cyan); background: rgba(85,216,232,.1); }.circle-rose { color: var(--rose); background: rgba(255,108,158,.1); }
 .circle-list strong, .circle-list small { display: block; }.circle-list strong { font-size: .8rem; }.circle-list small { color: var(--muted); margin-top: .2rem; font-size: .65rem; }
 .prompt-card { background: radial-gradient(circle at 100% 0, rgba(157,108,255,.2), transparent 45%), var(--surface); }.prompt-card h3 { line-height: 1.4; }
+.circle-composer { grid-template-columns: minmax(0, 1fr) auto auto; }
+.circle-composer textarea { min-height: 52px; resize: vertical; border: 0; outline: 0; padding: .8rem; border-radius: 10px; color: #ded9e5; background: rgba(255,255,255,.035); font: inherit; }
+.circle-composer .ghost-button { cursor: pointer; }
+.circle-list button { display: flex; align-items: center; gap: .7rem; width: 100%; margin: .35rem 0; padding: .5rem; border: 1px solid transparent; border-radius: 11px; color: #d8d3df; text-align: left; background: transparent; cursor: pointer; }
+.circle-list button:hover, .circle-list button.selected { border-color: var(--line); background: rgba(157,108,255,.08); }
+.compact-form { display: grid; gap: .55rem; margin: .8rem 0; }
+.compact-form input { min-width: 0; padding: .7rem .8rem; border: 1px solid var(--line); border-radius: 9px; outline: 0; color: white; background: rgba(255,255,255,.035); }
+.compact-form button { justify-content: center; }
+.form-message { margin: 0; padding: .7rem 1rem; border: 1px solid rgba(157,108,255,.18); border-radius: 10px; color: #cdb9ef; background: rgba(157,108,255,.07); font-size: .78rem; }
+.post header .post-delete { margin-left: auto; border: 0; color: #837b89; background: transparent; cursor: pointer; }
+.circle-photo { position: relative; width: 100%; aspect-ratio: 16 / 10; margin-top: 1rem; overflow: hidden; border-radius: 13px; background: #0b0a0f; }
+.circle-photo img { object-fit: contain; }
+
+.profile-media-editor { margin: 1rem 0; }
+.quota-track { height: 6px; margin: .8rem 0 1.2rem; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.05); }
+.quota-track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--violet), var(--cyan)); transition: width .25s ease; }
+.profile-media-grid { display: grid; grid-template-columns: .7fr 1.3fr; gap: 1rem; }
+.profile-media-grid > div { display: grid; gap: .6rem; }
+.media-preview { position: relative; min-height: 150px; display: grid; place-items: center; overflow: hidden; border: 1px dashed rgba(255,255,255,.1); border-radius: 13px; color: var(--muted); background: rgba(255,255,255,.025); font-size: .72rem; }
+.media-preview-avatar { aspect-ratio: 1; max-width: 180px; border-radius: 50%; }
+.media-preview-banner { aspect-ratio: 3 / 1; }
+.media-preview img { object-fit: cover; }
+.media-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.media-actions label { cursor: pointer; }
+.profile-media-editor > small { display: block; margin-top: 1rem; color: var(--muted); }
 
 .calendar-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: .4rem; margin-bottom: 1rem; padding: .65rem; }
 .calendar-strip button { position: relative; padding: .7rem; border: 0; border-radius: 10px; color: #77727f; background: transparent; cursor: pointer; }.calendar-strip span, .calendar-strip strong { display: block; }.calendar-strip span { font-size: .62rem; }.calendar-strip strong { margin-top: .3rem; font-size: 1rem; }
@@ -378,6 +403,8 @@ button { font: inherit; }
   .achievement-summary { grid-template-columns: auto 1fr; }.achievement-summary > b { display: none; }
   .podium { gap: .35rem; }.podium article { width: 33.33%; padding: 1rem .35rem; }.podium .avatar { width: 44px; height: 44px; }
   .circle-aside { grid-template-columns: 1fr; }.photo-placeholder { height: 210px; }
+  .circle-composer { grid-template-columns: 1fr 1fr; }.circle-composer textarea { grid-column: 1 / -1; }
+  .profile-media-grid { grid-template-columns: 1fr; }.media-preview-avatar { max-width: 140px; }
   .calendar-strip { overflow-x: auto; grid-template-columns: repeat(7, 68px); }
   .plan-card { grid-template-columns: 60px 1fr; }.plan-people, .plan-card > button { grid-column: 2; }
   .party-hero { min-height: 330px; padding: 1.5rem; }.party-hero h2 { font-size: 2.8rem; }

@@ -28,7 +28,7 @@ export function PortalSidebar({ user, demo = false }: Props) {
 
       <div className="sidebar-profile">
         {user.image ? (
-          <Image src={user.image} alt="" width={38} height={38} className="avatar" />
+          <Image unoptimized={user.image.startsWith("/api/media/")} src={user.image} alt="" width={38} height={38} className="avatar" />
         ) : <span className="avatar avatar-fallback" />}
         <div>
           <strong>{user.name || "Nova"}</strong>

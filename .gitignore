@@ -5,3 +5,7 @@
 /.env.local
 *.log
 *.tsbuildinfo
+/data
+/coverage
+/secrets
+/backups

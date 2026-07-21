@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { StatCard } from "@/components/stat-card";
 import { DEMO_USER_ID, IS_DEMO_MODE } from "@/lib/demo";
 import { EyedBotApiError, getCommunityMember } from "@/lib/eyedbot-api";
+import { getProfileMedia } from "@/lib/media/service";
 
 export default async function MemberProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -24,14 +25,24 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
 
   if (!profile) return <div className="empty-card"><h1>No pudimos abrir este perfil</h1><p>Puede que el miembro ya no pertenezca al servidor.</p></div>;
   const { user } = profile;
+  let customMedia = { avatarUrl: null as string | null, bannerUrl: null as string | null };
+  if (!IS_DEMO_MODE) {
+    try {
+      customMedia = await getProfileMedia(id);
+    } catch (error) {
+      console.error("No se pudo cargar el perfil personalizado", error);
+    }
+  }
+  const avatarUrl = customMedia.avatarUrl || user.avatarUrl;
+  const bannerUrl = customMedia.bannerUrl || user.bannerUrl;
   return (
     <>
         <Link href="/lobby" className="back-link"><ArrowLeft size={16} /> Volver al lobby</Link>
         <section className="public-profile-hero">
-          <div className="public-cover" style={coverStyle(user.bannerUrl, user.accentColor)} />
+          <div className="public-cover" style={coverStyle(bannerUrl, user.accentColor)} />
           <div className="public-profile-main">
-            <div className={`public-avatar avatar ${user.avatarUrl ? "" : "avatar-fallback"}`}>
-              {user.avatarUrl && <Image src={user.avatarUrl} alt="" width={112} height={112} priority />}
+            <div className={`public-avatar avatar ${avatarUrl ? "" : "avatar-fallback"}`}>
+              {avatarUrl && <Image unoptimized={Boolean(customMedia.avatarUrl)} src={avatarUrl} alt="" width={112} height={112} priority />}
               <i className={`status-dot status-${user.status}`} />
             </div>
             <div><span className="eyebrow">Perfil de la comunidad</span><h1>{user.displayName}</h1><p>@{user.username} · {user.activity || "Sin actividad"}</p></div>

@@ -36,7 +36,7 @@ export function MemberLobby({ members }: { members: CommunityMemberSummary[] }) 
           <Link href={`/members/${member.id}`} className="member-card panel" key={member.id}>
             <div className="member-cover" style={coverStyle(member.bannerUrl, member.accentColor)} />
             <div className={`member-avatar avatar ${member.avatarUrl ? "" : "avatar-fallback"}`}>
-              {member.avatarUrl && <Image src={member.avatarUrl} alt="" width={64} height={64} />}
+              {member.avatarUrl && <Image unoptimized={member.avatarUrl.startsWith("/api/media/")} src={member.avatarUrl} alt="" width={64} height={64} />}
               <i className={`status-dot status-${member.status}`} />
             </div>
             <span className="member-rank">#{member.rank || "—"}</span>
