@@ -18,7 +18,7 @@ export default async function AdminPage() {
       <PageHeader
         eyebrow="Administración"
         title="Control de EyedComun"
-        description="Activa módulos, controla notificaciones y administra el acceso al portal."
+        description="Prepara los cambios, revisa el estado y aplícalos para que surtan efecto en todo el portal."
         action={<span className="secondary-button"><ShieldCheck size={17} /> Acceso protegido</span>}
       />
       <AdminSettingsClient initialSettings={response.settings} />
