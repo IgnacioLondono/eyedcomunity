@@ -172,6 +172,23 @@ const wrappedSchema = z.object({
   highlights: z.array(z.string()),
   ...requestMetadata,
 });
+const featureKeySchema = z.enum([
+  "activity", "achievements", "wrapped", "server", "lobby",
+  "ranking", "circle", "plans", "party", "challenges",
+]);
+const communitySettingsSchema = z.object({
+  maintenance: z.boolean(),
+  achievementNotifications: z.boolean(),
+  features: z.record(featureKeySchema, z.boolean()),
+  updatedAt: nullableIso,
+  updatedBy: snowflake.nullable(),
+});
+const settingsResponseSchema = z.object({
+  settings: communitySettingsSchema,
+  isAdmin: z.boolean(),
+  ...requestMetadata,
+});
+const settingsCache = new Map<string, { value: z.infer<typeof settingsResponseSchema>; expiresAt: number }>();
 
 export class EyedBotApiError extends Error {
   constructor(
@@ -282,6 +299,35 @@ function userPath(userId: string) {
 
 export function getCommunityProfile(userId: string) {
   return eyedBotRequest<CommunityProfile>(`/api/community/profile/${userPath(userId)}`, { userId, schema: profileSchema });
+}
+
+export async function getCommunitySettings(userId: string) {
+  const cached = settingsCache.get(userId);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+  const value = await eyedBotRequest("/api/community/settings", {
+    userId,
+    schema: settingsResponseSchema,
+  });
+  settingsCache.set(userId, { value, expiresAt: Date.now() + 15_000 });
+  return value;
+}
+
+export async function updateCommunitySettings(
+  userId: string,
+  patch: {
+    maintenance?: boolean;
+    achievementNotifications?: boolean;
+    features?: Partial<Record<z.infer<typeof featureKeySchema>, boolean>>;
+  },
+) {
+  const value = await eyedBotRequest("/api/community/admin/settings", {
+    userId,
+    method: "PATCH",
+    body: patch,
+    schema: z.object({ settings: communitySettingsSchema, ...requestMetadata }),
+  });
+  settingsCache.clear();
+  return value;
 }
 
 export function getCommunityServer(userId: string) {

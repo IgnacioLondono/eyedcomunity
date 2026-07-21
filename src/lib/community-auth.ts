@@ -6,6 +6,7 @@ import { buildCommunitySignedHeaders, getEyedBotUrl } from "./eyedbot-api";
 import { membershipCacheValue } from "./membership-cache";
 
 const membershipCache = new Map<string, { valid: boolean; expiresAt: number }>();
+const membershipChecks = new Map<string, Promise<void>>();
 const MEMBERSHIP_TTL_MS = 2 * 60 * 1000;
 
 export { ApiAccessError, assertSameOrigin };
@@ -36,7 +37,15 @@ export async function assertCurrentMember(userId: string) {
     if (!cached.valid) throw new ApiAccessError("Ya no perteneces al servidor", 403);
     return;
   }
+    const activeCheck = membershipChecks.get(userId);
+    if (activeCheck) return activeCheck;
 
+    const check = checkCurrentMember(userId).finally(() => membershipChecks.delete(userId));
+    membershipChecks.set(userId, check);
+    return check;
+}
+
+async function checkCurrentMember(userId: string) {
   const path = `/api/community/membership/${encodeURIComponent(userId)}`;
   let url: string;
   let headers: HeadersInit;

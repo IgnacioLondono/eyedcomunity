@@ -14,6 +14,10 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
   const { id } = await params;
   if (!/^\d{10,25}$/.test(id)) notFound();
 
+  const mediaPromise = getProfileMedia(id).catch((error) => {
+    console.error("No se pudo cargar el perfil personalizado", error);
+    return { avatarUrl: null as string | null, bannerUrl: null as string | null };
+  });
   let profile: Awaited<ReturnType<typeof getCommunityMember>> | null = null;
   try {
     profile = await getCommunityMember(viewerId, id);
@@ -24,12 +28,7 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
 
   if (!profile) return <div className="empty-card"><h1>No pudimos abrir este perfil</h1><p>Puede que el miembro ya no pertenezca al servidor.</p></div>;
   const { user } = profile;
-  let customMedia = { avatarUrl: null as string | null, bannerUrl: null as string | null };
-  try {
-    customMedia = await getProfileMedia(id);
-  } catch (error) {
-    console.error("No se pudo cargar el perfil personalizado", error);
-  }
+  const customMedia = await mediaPromise;
   const avatarUrl = customMedia.avatarUrl || user.avatarUrl;
   const bannerUrl = customMedia.bannerUrl || user.bannerUrl;
   return (

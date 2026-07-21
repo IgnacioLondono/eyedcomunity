@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 const EVENT_TYPES = [
@@ -22,24 +22,56 @@ const EVENT_TYPES = [
   "party.left",
   "party.status",
   "party.action",
+  "community.settings_changed",
 ];
 
 export function CommunityLiveEvents() {
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const source = new EventSource("/api/community/events");
     let timer: ReturnType<typeof setTimeout> | null = null;
-    const refresh = () => {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => router.refresh(), 750);
+    let refreshWhenVisible = false;
+    const affectsCurrentPage = (type: string) => {
+      if (type === "community.settings_changed") return true;
+      if (type.startsWith("plan.")) return pathname.startsWith("/plans");
+      if (type.startsWith("party.")) return pathname.startsWith("/party");
+      if (type.startsWith("challenge.")) return pathname.startsWith("/challenges") || pathname === "/dashboard";
+      if (type === "achievement.unlocked") return pathname.startsWith("/achievements") || pathname === "/dashboard";
+      if (type === "activity.invalidated") return ["/activity", "/dashboard", "/wrapped"].some((path) => pathname.startsWith(path));
+      if (type === "ranking.invalidated") return ["/ranking", "/dashboard", "/lobby", "/members", "/wrapped"].some((path) => pathname.startsWith(path));
+      if (type === "presence.changed") return ["/lobby", "/server", "/members"].some((path) => pathname.startsWith(path));
+      return false;
     };
-    EVENT_TYPES.forEach((type) => source.addEventListener(type, refresh));
+    const refresh = (type: string) => {
+      if (!affectsCurrentPage(type)) return;
+      if (document.hidden) {
+        refreshWhenVisible = true;
+        return;
+      }
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => router.refresh(), 500);
+    };
+    const listeners = EVENT_TYPES.map((type) => {
+      const listener = () => refresh(type);
+      source.addEventListener(type, listener);
+      return { type, listener };
+    });
+    const onVisibilityChange = () => {
+      if (!document.hidden && refreshWhenVisible) {
+        refreshWhenVisible = false;
+        router.refresh();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
       if (timer) clearTimeout(timer);
+      listeners.forEach(({ type, listener }) => source.removeEventListener(type, listener));
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       source.close();
     };
-  }, [router]);
+  }, [pathname, router]);
 
   return null;
 }

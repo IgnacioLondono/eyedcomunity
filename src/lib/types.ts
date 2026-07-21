@@ -8,6 +8,26 @@ export type CommunityUser = {
 
 export type RequestMetadata = { requestId: string };
 
+export type CommunityFeatureKey =
+  | "activity"
+  | "achievements"
+  | "wrapped"
+  | "server"
+  | "lobby"
+  | "ranking"
+  | "circle"
+  | "plans"
+  | "party"
+  | "challenges";
+
+export type CommunitySettings = {
+  maintenance: boolean;
+  achievementNotifications: boolean;
+  features: Record<CommunityFeatureKey, boolean>;
+  updatedAt: string | null;
+  updatedBy: string | null;
+};
+
 export type TrackingMetadata = {
   trackingStartedAt: string | null;
   timezone: string;

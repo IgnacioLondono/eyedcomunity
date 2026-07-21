@@ -15,6 +15,13 @@ export default async function Dashboard() {
   if (!session?.user?.id) redirect("/");
   const userId = session.user.id;
 
+  const mediaPromise = Promise.all([getProfileMedia(userId), getQuota(userId)]).catch((error) => {
+    console.error("No se pudo cargar el perfil personalizado", error);
+    return [
+      { avatarUrl: null as string | null, bannerUrl: null as string | null },
+      { usedBytes: 0, quotaBytes: 104_857_600 },
+    ] as const;
+  });
   let profile;
   try {
     profile = await getCommunityProfile(userId);
@@ -23,13 +30,7 @@ export default async function Dashboard() {
     return <Unavailable />;
   }
 
-  let customMedia = { avatarUrl: null as string | null, bannerUrl: null as string | null };
-  let quota = { usedBytes: 0, quotaBytes: 104_857_600 };
-  try {
-    [customMedia, quota] = await Promise.all([getProfileMedia(userId), getQuota(userId)]);
-  } catch (error) {
-    console.error("No se pudo cargar el perfil personalizado", error);
-  }
+  const [customMedia, quota] = await mediaPromise;
 
   const voiceHours = Math.round((profile.stats.voiceMinutes / 60) * 10) / 10;
   const avatarUrl = customMedia.avatarUrl || profile.user.avatarUrl;
