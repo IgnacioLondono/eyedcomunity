@@ -26,6 +26,10 @@ const snowflake = z.string().regex(/^\d{10,25}$/);
 const iso = z.string().datetime();
 const nullableIso = iso.nullable();
 const nonNegative = z.number().int().nonnegative();
+const nullableHttpUrl = z.preprocess(
+  (value) => (value === "" || value === undefined ? null : value),
+  z.string().url().nullable(),
+);
 const requestMetadata = { requestId: z.string().min(1) };
 const trackingMetadata = {
   trackingStartedAt: nullableIso,
@@ -37,7 +41,7 @@ const userSchema = z.object({
   id: snowflake,
   username: z.string(),
   displayName: z.string(),
-  avatarUrl: z.string().url().nullable(),
+  avatarUrl: nullableHttpUrl,
   joinedAt: nullableIso,
 });
 const activityDaySchema = z.object({
@@ -49,7 +53,7 @@ const activityDaySchema = z.object({
 });
 const profileSchema = z.object({
   user: userSchema.extend({
-    bannerUrl: z.string().url().nullable(),
+    bannerUrl: nullableHttpUrl,
     accentColor: z.string().nullable(),
   }),
   stats: z.object({
@@ -65,7 +69,7 @@ const profileSchema = z.object({
   })),
 });
 const memberSummarySchema = userSchema.extend({
-  bannerUrl: z.string().url().nullable(),
+  bannerUrl: nullableHttpUrl,
   accentColor: z.string().nullable(),
   status: z.enum(["online", "idle", "dnd", "offline"]),
   activity: z.string().nullable(),
@@ -77,7 +81,7 @@ const memberSummarySchema = userSchema.extend({
 });
 const serverSchema = z.object({
   guild: z.object({
-    id: snowflake, name: z.string(), iconUrl: z.string().url().nullable(),
+    id: snowflake, name: z.string(), iconUrl: nullableHttpUrl,
     memberCount: nonNegative, onlineCount: nonNegative,
   }),
   totals: z.object({ messages: nonNegative, voiceMinutes: nonNegative, joins: nonNegative, leaves: nonNegative }),
@@ -86,7 +90,7 @@ const serverSchema = z.object({
     date: z.string().date(), messages: nonNegative, voiceMinutes: nonNegative, joins: nonNegative, leaves: nonNegative,
   })),
   leaderboard: z.array(z.object({
-    userId: snowflake, displayName: z.string(), avatarUrl: z.string().url().nullable(),
+    userId: snowflake, displayName: z.string(), avatarUrl: nullableHttpUrl,
     xp: nonNegative, level: nonNegative, messages: nonNegative, voiceMinutes: nonNegative,
   })),
 });
@@ -199,7 +203,7 @@ const shopProductSchema = z.object({
   type: z.enum(["character", "role", "item"]),
   name: z.string().min(1),
   description: z.string(),
-  imageUrl: z.string().url().nullable(),
+  imageUrl: nullableHttpUrl,
   category: z.string().min(1).max(64),
   priceCoins: nonNegative,
   stock: nonNegative.nullable(),
@@ -305,7 +309,7 @@ export async function eyedBotRequest<T>(path: string, options: RequestOptions<T>
     },
     body: body || undefined,
     cache: "no-store",
-    signal: AbortSignal.timeout(options.timeoutMs ?? 8_000),
+    signal: AbortSignal.timeout(options.timeoutMs ?? 15_000),
   }).catch((error) => {
     throw new EyedBotApiError(
       error instanceof Error ? error.message : "EyedBot no está disponible",
@@ -348,6 +352,7 @@ export function getCommunityShop(userId: string) {
   return eyedBotRequest<CommunityShopCatalog>("/api/community/shop", {
     userId,
     schema: shopCatalogSchema,
+    timeoutMs: 20_000,
   });
 }
 
@@ -407,14 +412,14 @@ export function getCommunityWrapped(userId: string, year: number) {
 export function getCommunityMembers(viewerId: string) {
   return eyedBotRequest(
     "/api/community/members",
-    { userId: viewerId, schema: z.object({ members: z.array(memberSummarySchema) }) },
+    { userId: viewerId, schema: z.object({ members: z.array(memberSummarySchema) }), timeoutMs: 30_000 },
   ).then((result) => result.members);
 }
 
 export function getCommunityDirectory(viewerId: string) {
   return eyedBotRequest(
     "/api/community/members?directory=1",
-    { userId: viewerId, schema: z.object({ members: z.array(memberSummarySchema) }) },
+    { userId: viewerId, schema: z.object({ members: z.array(memberSummarySchema) }), timeoutMs: 20_000 },
   ).then((result) => result.members);
 }
 
