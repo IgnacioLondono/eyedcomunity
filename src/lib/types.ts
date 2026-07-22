@@ -45,6 +45,7 @@ export type CommunityShopProduct = {
   ownedQuantity: number;
   active: boolean;
   sortOrder: number;
+  rarity?: string | null;
   source?: "gacha" | "community";
   sourceId?: string | null;
   hasCatalogImage?: boolean;
@@ -53,6 +54,7 @@ export type CommunityShopProduct = {
 export type CommunityShopCatalog = RequestMetadata & {
   products: CommunityShopProduct[];
   categories: string[];
+  rarities?: string[];
   balance: number;
 };
 

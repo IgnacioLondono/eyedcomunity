@@ -1,10 +1,12 @@
 import { accessErrorResponse, requireCommunityViewer } from "@/lib/community-auth";
 import { buildCommunitySignedHeaders, getEyedBotUrl } from "@/lib/eyedbot-api";
+import { isAbortLike } from "@/lib/upstream-proxy";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ characterId: string }> },
 ) {
   try {
@@ -21,16 +23,25 @@ export async function GET(
       signal: AbortSignal.timeout(10_000),
     });
     if (!upstream.ok) {
-      return Response.json({ error: "Imagen no disponible" }, { status: upstream.status === 404 ? 404 : 502 });
+      return Response.json(
+        { error: "Imagen no disponible" },
+        { status: upstream.status === 404 ? 404 : 502 },
+      );
     }
-    return new Response(upstream.body, {
+    // Buffer completo: evita UND_ERR_SOCKET al pipear el stream de EyedBot.
+    const bytes = await upstream.arrayBuffer();
+    return new Response(bytes, {
       status: 200,
       headers: {
         "Content-Type": upstream.headers.get("content-type") || "image/png",
         "Cache-Control": "private, max-age=300",
+        "Content-Length": String(bytes.byteLength),
       },
     });
   } catch (error) {
+    if (request.signal.aborted || isAbortLike(error)) {
+      return new Response(null, { status: 204 });
+    }
     return accessErrorResponse(error);
   }
 }

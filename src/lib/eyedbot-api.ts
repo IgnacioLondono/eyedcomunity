@@ -210,6 +210,7 @@ const shopProductSchema = z.object({
   ownedQuantity: nonNegative,
   active: z.boolean(),
   sortOrder: nonNegative,
+  rarity: z.string().nullable().optional().default(null),
   source: z.enum(["gacha", "community"]).optional().default("community"),
   sourceId: z.string().nullable().optional().default(null),
   hasCatalogImage: z.boolean().optional().default(false),
@@ -217,6 +218,7 @@ const shopProductSchema = z.object({
 const shopCatalogSchema = z.object({
   products: z.array(shopProductSchema),
   categories: z.array(z.string().min(1)).default([]),
+  rarities: z.array(z.string().min(1)).optional().default([]),
   balance: nonNegative,
   ...requestMetadata,
 });

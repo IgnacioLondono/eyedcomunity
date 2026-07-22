@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { Check, Coins, Package, Shield, Sparkles } from "lucide-react";
+import { ArrowDownWideNarrow, Check, Coins, Package, Shield, Sparkles } from "lucide-react";
 import type { CommunityShopCatalog, CommunityShopProduct } from "@/lib/types";
 
 const typeLabels = {
@@ -19,6 +19,8 @@ const categoryLabels: Record<string, string> = {
   eventos: "Eventos",
   cosmeticos: "Cosméticos",
 };
+
+const rarityOrder: Record<string, number> = { SSR: 4, SR: 3, R: 2, N: 1 };
 
 function ProductIcon({ type }: { type: CommunityShopProduct["type"] }) {
   if (type === "role") return <Shield />;
@@ -38,10 +40,17 @@ function productImage(product: CommunityShopProduct) {
   return null;
 }
 
+function productRarity(product: CommunityShopProduct) {
+  const value = String(product.rarity || "").trim().toUpperCase();
+  return value || null;
+}
+
 export function ShopClient({ initialCatalog }: { initialCatalog: CommunityShopCatalog }) {
   const [products, setProducts] = useState(initialCatalog.products);
   const [balance, setBalance] = useState(initialCatalog.balance);
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedRarity, setSelectedRarity] = useState("all");
+  const [sortBy, setSortBy] = useState<"price-desc" | "price-asc" | "name">("price-desc");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
@@ -52,18 +61,27 @@ export function ShopClient({ initialCatalog }: { initialCatalog: CommunityShopCa
     return fromProducts.length ? fromProducts : initialCatalog.categories;
   }, [products, initialCatalog.categories]);
 
-  const grouped = useMemo(() => {
-    const filtered = selectedCategory === "all"
-      ? products
-      : products.filter((item) => item.category === selectedCategory);
-    const map = new Map<string, CommunityShopProduct[]>();
-    for (const product of filtered) {
-      const list = map.get(product.category) || [];
-      list.push(product);
-      map.set(product.category, list);
-    }
-    return [...map.entries()];
-  }, [products, selectedCategory]);
+  const rarities = useMemo(() => {
+    const fromProducts = [...new Set(
+      products.map((item) => productRarity(item)).filter((value): value is string => Boolean(value)),
+    )];
+    const base = fromProducts.length ? fromProducts : (initialCatalog.rarities || []);
+    return [...base].sort((left, right) => (rarityOrder[right] || 0) - (rarityOrder[left] || 0) || left.localeCompare(right));
+  }, [products, initialCatalog.rarities]);
+
+  const filteredProducts = useMemo(() => {
+    const list = products.filter((item) => {
+      if (selectedCategory !== "all" && item.category !== selectedCategory) return false;
+      if (selectedRarity !== "all" && productRarity(item) !== selectedRarity) return false;
+      return true;
+    });
+    list.sort((left, right) => {
+      if (sortBy === "price-desc") return right.priceCoins - left.priceCoins || left.name.localeCompare(right.name, "es");
+      if (sortBy === "price-asc") return left.priceCoins - right.priceCoins || left.name.localeCompare(right.name, "es");
+      return left.name.localeCompare(right.name, "es");
+    });
+    return list;
+  }, [products, selectedCategory, selectedRarity, sortBy]);
 
   function maximum(product: CommunityShopProduct) {
     const stock = product.remainingStock ?? 20;
@@ -114,24 +132,46 @@ export function ShopClient({ initialCatalog }: { initialCatalog: CommunityShopCa
   return (
     <div className="shop-layout">
       <section className="shop-balance panel">
-        <div><span className="eyebrow">Saldo disponible</span><strong>{balance.toLocaleString("es")}</strong><p>EyedCoins</p></div>
+        <div>
+          <span className="eyebrow">Saldo disponible</span>
+          <strong>{balance.toLocaleString("es")}</strong>
+          <p>EyedCoins</p>
+        </div>
         <Coins />
       </section>
 
-      {categories.length > 0 ? (
-        <nav className="shop-categories" aria-label="Categorías de la tienda">
-          <button className={selectedCategory === "all" ? "active" : ""} onClick={() => setSelectedCategory("all")}>Todas</button>
-          {categories.map((category) => (
-            <button
-              key={category}
-              className={selectedCategory === category ? "active" : ""}
-              onClick={() => setSelectedCategory(category)}
-            >
-              {labelFor(category)}
-            </button>
-          ))}
-        </nav>
-      ) : null}
+      <section className="shop-filters panel" aria-label="Filtros de la tienda">
+        <label>
+          <span>Categoría</span>
+          <select value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)}>
+            <option value="all">Todas</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>{labelFor(category)}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Rareza</span>
+          <select value={selectedRarity} onChange={(event) => setSelectedRarity(event.target.value)}>
+            <option value="all">Todas</option>
+            {rarities.map((rarity) => (
+              <option key={rarity} value={rarity}>{rarity}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Orden</span>
+          <select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)}>
+            <option value="price-desc">Mayor precio → menor</option>
+            <option value="price-asc">Menor precio → mayor</option>
+            <option value="name">Nombre A-Z</option>
+          </select>
+        </label>
+        <p className="shop-filters-count">
+          <ArrowDownWideNarrow size={15} />
+          {filteredProducts.length} producto{filteredProducts.length === 1 ? "" : "s"}
+        </p>
+      </section>
 
       {message ? (
         <p className={`shop-feedback ${message.tone}`} role="status">
@@ -140,60 +180,62 @@ export function ShopClient({ initialCatalog }: { initialCatalog: CommunityShopCa
         </p>
       ) : null}
 
-      {grouped.map(([category, items]) => (
-        <section className="shop-category-block" key={category}>
-          <h2>{labelFor(category)}</h2>
-          <div className="shop-grid">
-            {items.map((product) => {
-              const max = maximum(product);
-              const quantity = Math.max(1, Math.min(max || 1, quantities[product.id] || 1));
-              const soldOut = product.remainingStock === 0;
-              const limited = product.perUserLimit !== null && product.purchasedQuantity >= product.perUserLimit;
-              const unavailable = soldOut || limited || max < 1;
-              const imageSrc = productImage(product);
-              return (
-                <article className="shop-product panel" key={product.id}>
-                  <div className="shop-product-media">
-                    {imageSrc ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={imageSrc} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                    ) : <ProductIcon type={product.type} />}
-                    <span>{typeLabels[product.type]}</span>
+      {filteredProducts.length === 0 ? (
+        <p className="shop-empty panel">No hay productos con estos filtros.</p>
+      ) : (
+        <div className="shop-grid">
+          {filteredProducts.map((product) => {
+            const max = maximum(product);
+            const quantity = Math.max(1, Math.min(max || 1, quantities[product.id] || 1));
+            const soldOut = product.remainingStock === 0;
+            const limited = product.perUserLimit !== null && product.purchasedQuantity >= product.perUserLimit;
+            const unavailable = soldOut || limited || max < 1;
+            const imageSrc = productImage(product);
+            const rarity = productRarity(product);
+            return (
+              <article className="shop-product panel" key={product.id}>
+                <div className="shop-product-media">
+                  {imageSrc ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={imageSrc} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                  ) : <ProductIcon type={product.type} />}
+                  <span>{typeLabels[product.type]}</span>
+                  {rarity ? <em className={`shop-rarity rarity-${rarity.toLowerCase()}`}>{rarity}</em> : null}
+                </div>
+                <div className="shop-product-body">
+                  <h2>{product.name}</h2>
+                  <p>{product.description || "Producto de la comunidad."}</p>
+                  <div className="shop-product-meta">
+                    <strong><Coins size={15} /> {product.priceCoins.toLocaleString("es")}</strong>
+                    <span>{labelFor(product.category)}</span>
+                    <span>{product.remainingStock === null ? "Stock ilimitado" : `${product.remainingStock} disponibles`}</span>
+                    {product.ownedQuantity > 0 ? <span>En inventario: {product.ownedQuantity}</span> : null}
+                    {product.purchasedQuantity > 0 && product.source !== "gacha" ? <span>Comprados: {product.purchasedQuantity}</span> : null}
                   </div>
-                  <div className="shop-product-body">
-                    <h2>{product.name}</h2>
-                    <p>{product.description || "Producto de la comunidad."}</p>
-                    <div className="shop-product-meta">
-                      <strong><Coins size={15} /> {product.priceCoins.toLocaleString("es")}</strong>
-                      <span>{product.remainingStock === null ? "Stock ilimitado" : `${product.remainingStock} disponibles`}</span>
-                      {product.ownedQuantity > 0 ? <span>En inventario: {product.ownedQuantity}</span> : null}
-                      {product.purchasedQuantity > 0 && product.source !== "gacha" ? <span>Comprados: {product.purchasedQuantity}</span> : null}
-                    </div>
-                    <div className="shop-buy-row">
-                      {product.type !== "role" && max > 1 ? (
-                        <input
-                          aria-label={`Cantidad de ${product.name}`}
-                          type="number"
-                          min={1}
-                          max={max}
-                          value={quantity}
-                          onChange={(event) => setQuantities((current) => ({
-                            ...current,
-                            [product.id]: Math.max(1, Math.min(max, Number.parseInt(event.target.value, 10) || 1)),
-                          }))}
-                        />
-                      ) : null}
-                      <button className="primary-button" disabled={busyId !== null || unavailable} onClick={() => void purchase(product)}>
-                        {busyId === product.id ? "Comprando…" : soldOut ? "Agotado" : limited ? "Límite alcanzado" : max < 1 ? "Saldo insuficiente" : "Comprar"}
-                      </button>
-                    </div>
+                  <div className="shop-buy-row">
+                    {product.type !== "role" && max > 1 ? (
+                      <input
+                        aria-label={`Cantidad de ${product.name}`}
+                        type="number"
+                        min={1}
+                        max={max}
+                        value={quantity}
+                        onChange={(event) => setQuantities((current) => ({
+                          ...current,
+                          [product.id]: Math.max(1, Math.min(max, Number.parseInt(event.target.value, 10) || 1)),
+                        }))}
+                      />
+                    ) : null}
+                    <button className="primary-button" disabled={busyId !== null || unavailable} onClick={() => void purchase(product)}>
+                      {busyId === product.id ? "Comprando…" : soldOut ? "Agotado" : limited ? "Límite alcanzado" : max < 1 ? "Saldo insuficiente" : "Comprar"}
+                    </button>
                   </div>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-      ))}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
