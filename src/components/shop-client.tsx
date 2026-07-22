@@ -10,16 +10,6 @@ const typeLabels = {
   item: "Objeto virtual",
 } as const;
 
-const categoryLabels: Record<string, string> = {
-  general: "General",
-  personajes: "Personajes",
-  roles: "Roles",
-  objetos: "Objetos",
-  boosts: "Boosts",
-  eventos: "Eventos",
-  cosmeticos: "Cosméticos",
-};
-
 const rarityOrder: Record<string, number> = { SSR: 4, SR: 3, R: 2, N: 1 };
 
 function ProductIcon({ type }: { type: CommunityShopProduct["type"] }) {
@@ -29,7 +19,9 @@ function ProductIcon({ type }: { type: CommunityShopProduct["type"] }) {
 }
 
 function labelFor(category: string) {
-  return categoryLabels[category] || category.replace(/-/g, " ");
+  const raw = String(category || "").trim();
+  if (!raw) return "Sin categoría";
+  return raw.replace(/-/g, " ");
 }
 
 function productImage(product: CommunityShopProduct) {
@@ -57,17 +49,16 @@ export function ShopClient({ initialCatalog }: { initialCatalog: CommunityShopCa
   const requestKeys = useRef<Record<string, string>>({});
 
   const categories = useMemo(() => {
-    const fromProducts = [...new Set(products.map((item) => item.category))];
-    return fromProducts.length ? fromProducts : initialCatalog.categories;
-  }, [products, initialCatalog.categories]);
+    return [...new Set(products.map((item) => item.category).filter(Boolean))]
+      .sort((left, right) => left.localeCompare(right, "es"));
+  }, [products]);
 
   const rarities = useMemo(() => {
     const fromProducts = [...new Set(
       products.map((item) => productRarity(item)).filter((value): value is string => Boolean(value)),
     )];
-    const base = fromProducts.length ? fromProducts : (initialCatalog.rarities || []);
-    return [...base].sort((left, right) => (rarityOrder[right] || 0) - (rarityOrder[left] || 0) || left.localeCompare(right));
-  }, [products, initialCatalog.rarities]);
+    return fromProducts.sort((left, right) => (rarityOrder[right] || 0) - (rarityOrder[left] || 0) || left.localeCompare(right));
+  }, [products]);
 
   const filteredProducts = useMemo(() => {
     const list = products.filter((item) => {
@@ -82,6 +73,17 @@ export function ShopClient({ initialCatalog }: { initialCatalog: CommunityShopCa
     });
     return list;
   }, [products, selectedCategory, selectedRarity, sortBy]);
+
+  const groupedByCategory = useMemo(() => {
+    const map = new Map<string, CommunityShopProduct[]>();
+    for (const product of filteredProducts) {
+      const key = product.category || "sin-categoria";
+      const list = map.get(key) || [];
+      list.push(product);
+      map.set(key, list);
+    }
+    return [...map.entries()].sort((left, right) => left[0].localeCompare(right[0], "es"));
+  }, [filteredProducts]);
 
   function maximum(product: CommunityShopProduct) {
     const stock = product.remainingStock ?? 20;
@@ -129,6 +131,56 @@ export function ShopClient({ initialCatalog }: { initialCatalog: CommunityShopCa
     }
   }
 
+  function renderProduct(product: CommunityShopProduct) {
+    const max = maximum(product);
+    const quantity = Math.max(1, Math.min(max || 1, quantities[product.id] || 1));
+    const soldOut = product.remainingStock === 0;
+    const limited = product.perUserLimit !== null && product.purchasedQuantity >= product.perUserLimit;
+    const unavailable = soldOut || limited || max < 1;
+    const imageSrc = productImage(product);
+    const rarity = productRarity(product);
+    return (
+      <article className="shop-product panel" key={product.id}>
+        <div className="shop-product-media">
+          {imageSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={imageSrc} alt="" loading="lazy" referrerPolicy="no-referrer" />
+          ) : <ProductIcon type={product.type} />}
+          <span>{typeLabels[product.type]}</span>
+          {rarity ? <em className={`shop-rarity rarity-${rarity.toLowerCase()}`}>{rarity}</em> : null}
+        </div>
+        <div className="shop-product-body">
+          <h2>{product.name}</h2>
+          <p>{product.description || "Producto de la comunidad."}</p>
+          <div className="shop-product-meta">
+            <strong><Coins size={15} /> {product.priceCoins.toLocaleString("es")}</strong>
+            <span>{product.remainingStock === null ? "Stock ilimitado" : `${product.remainingStock} disponibles`}</span>
+            {product.ownedQuantity > 0 ? <span>En inventario: {product.ownedQuantity}</span> : null}
+            {product.purchasedQuantity > 0 && product.source !== "gacha" ? <span>Comprados: {product.purchasedQuantity}</span> : null}
+          </div>
+          <div className="shop-buy-row">
+            {product.type !== "role" && max > 1 ? (
+              <input
+                aria-label={`Cantidad de ${product.name}`}
+                type="number"
+                min={1}
+                max={max}
+                value={quantity}
+                onChange={(event) => setQuantities((current) => ({
+                  ...current,
+                  [product.id]: Math.max(1, Math.min(max, Number.parseInt(event.target.value, 10) || 1)),
+                }))}
+              />
+            ) : null}
+            <button className="primary-button" disabled={busyId !== null || unavailable} onClick={() => void purchase(product)}>
+              {busyId === product.id ? "Comprando…" : soldOut ? "Agotado" : limited ? "Límite alcanzado" : max < 1 ? "Saldo insuficiente" : "Comprar"}
+            </button>
+          </div>
+        </div>
+      </article>
+    );
+  }
+
   return (
     <div className="shop-layout">
       <section className="shop-balance panel">
@@ -143,8 +195,11 @@ export function ShopClient({ initialCatalog }: { initialCatalog: CommunityShopCa
       <section className="shop-filters panel" aria-label="Filtros de la tienda">
         <label>
           <span>Categoría</span>
-          <select value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)}>
-            <option value="all">Todas</option>
+          <select
+            value={categories.includes(selectedCategory) || selectedCategory === "all" ? selectedCategory : "all"}
+            onChange={(event) => setSelectedCategory(event.target.value)}
+          >
+            <option value="all">Todas ({categories.length})</option>
             {categories.map((category) => (
               <option key={category} value={category}>{labelFor(category)}</option>
             ))}
@@ -152,7 +207,10 @@ export function ShopClient({ initialCatalog }: { initialCatalog: CommunityShopCa
         </label>
         <label>
           <span>Rareza</span>
-          <select value={selectedRarity} onChange={(event) => setSelectedRarity(event.target.value)}>
+          <select
+            value={rarities.includes(selectedRarity) || selectedRarity === "all" ? selectedRarity : "all"}
+            onChange={(event) => setSelectedRarity(event.target.value)}
+          >
             <option value="all">Todas</option>
             {rarities.map((rarity) => (
               <option key={rarity} value={rarity}>{rarity}</option>
@@ -182,59 +240,15 @@ export function ShopClient({ initialCatalog }: { initialCatalog: CommunityShopCa
 
       {filteredProducts.length === 0 ? (
         <p className="shop-empty panel">No hay productos con estos filtros.</p>
+      ) : selectedCategory !== "all" ? (
+        <div className="shop-grid">{filteredProducts.map(renderProduct)}</div>
       ) : (
-        <div className="shop-grid">
-          {filteredProducts.map((product) => {
-            const max = maximum(product);
-            const quantity = Math.max(1, Math.min(max || 1, quantities[product.id] || 1));
-            const soldOut = product.remainingStock === 0;
-            const limited = product.perUserLimit !== null && product.purchasedQuantity >= product.perUserLimit;
-            const unavailable = soldOut || limited || max < 1;
-            const imageSrc = productImage(product);
-            const rarity = productRarity(product);
-            return (
-              <article className="shop-product panel" key={product.id}>
-                <div className="shop-product-media">
-                  {imageSrc ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={imageSrc} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                  ) : <ProductIcon type={product.type} />}
-                  <span>{typeLabels[product.type]}</span>
-                  {rarity ? <em className={`shop-rarity rarity-${rarity.toLowerCase()}`}>{rarity}</em> : null}
-                </div>
-                <div className="shop-product-body">
-                  <h2>{product.name}</h2>
-                  <p>{product.description || "Producto de la comunidad."}</p>
-                  <div className="shop-product-meta">
-                    <strong><Coins size={15} /> {product.priceCoins.toLocaleString("es")}</strong>
-                    <span>{labelFor(product.category)}</span>
-                    <span>{product.remainingStock === null ? "Stock ilimitado" : `${product.remainingStock} disponibles`}</span>
-                    {product.ownedQuantity > 0 ? <span>En inventario: {product.ownedQuantity}</span> : null}
-                    {product.purchasedQuantity > 0 && product.source !== "gacha" ? <span>Comprados: {product.purchasedQuantity}</span> : null}
-                  </div>
-                  <div className="shop-buy-row">
-                    {product.type !== "role" && max > 1 ? (
-                      <input
-                        aria-label={`Cantidad de ${product.name}`}
-                        type="number"
-                        min={1}
-                        max={max}
-                        value={quantity}
-                        onChange={(event) => setQuantities((current) => ({
-                          ...current,
-                          [product.id]: Math.max(1, Math.min(max, Number.parseInt(event.target.value, 10) || 1)),
-                        }))}
-                      />
-                    ) : null}
-                    <button className="primary-button" disabled={busyId !== null || unavailable} onClick={() => void purchase(product)}>
-                      {busyId === product.id ? "Comprando…" : soldOut ? "Agotado" : limited ? "Límite alcanzado" : max < 1 ? "Saldo insuficiente" : "Comprar"}
-                    </button>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
-        </div>
+        groupedByCategory.map(([category, items]) => (
+          <section className="shop-category-block" key={category}>
+            <h2>{labelFor(category)} · {items.length}</h2>
+            <div className="shop-grid">{items.map(renderProduct)}</div>
+          </section>
+        ))
       )}
     </div>
   );
